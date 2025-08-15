@@ -1,0 +1,25 @@
+# Arquivos de configuração específicos do usuário do Visual Studio Code
+# Estes arquivos guardam suas configurações locais e não devem ser compartilhados.
+.vscode/
+
+# Pasta de build do CMake
+# Esta pasta contém todos os arquivos gerados pelo compilador (executáveis, objetos, etc.).
+# Ela é sempre gerada localmente e nunca deve ir para o repositório.
+build/
+
+# Arquivos de dependências ou bibliotecas externas que você baixa
+# É uma boa prática não versionar bibliotecas grandes. Em vez disso,
+# o README deve instruir como baixá-las. Se forem pequenas, você pode remover esta linha.
+# external/
+
+# Arquivos temporários e de sistema operacional
+*.DS_Store
+*.swp
+*.swo
+
+# Arquivos de log ou de output do seu programa
+*.log
+
+# Executável final (se por acaso ele for gerado fora da pasta 'build')
+sandbox
+sandbox.exe
