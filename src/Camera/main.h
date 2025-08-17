@@ -36,6 +36,7 @@ class Camera {
         void processKeyboard(cameraAction action, float deltaTtime); // ?
         void processMouseMovement(double xpos, double ypos, bool constrainPitch = true);
         void updateCamera();
+        void updateProj(float width, float height);
         RayCastResult detectBlock(const World &world, float maxDistance);
     private:
         glm::vec3 cameraPos;

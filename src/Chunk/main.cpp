@@ -30,6 +30,10 @@ Chunk::Chunk() {
 
 }
 
+int Chunk::getCount() const {
+    return count;
+}
+
 void Chunk::buildMesh() {
     std::vector<float> mesh;
     for (int x = 0; x < CHUNK_WIDTH; x++) {
@@ -108,8 +112,6 @@ void Chunk::buildMesh() {
     } else {
         count = 0;
     }
-    // vai virar função da classe Debugger
-    // std::cout << "Malha do chunk gerada com " << count << " vertices." << std::endl;
 }   
 
 void Chunk::draw() {

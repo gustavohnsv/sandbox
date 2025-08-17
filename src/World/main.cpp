@@ -5,6 +5,7 @@
 World::World(int range) {
     // 1. DEFINIÇÃO DAS VARIÁVEIS
     this->range = range;
+    this->seed = 0;
 
     // 2. CRIANDO OS OBJETOS PARA VERTICES E ARESTAS
     float vData[] = {
@@ -129,8 +130,7 @@ void World::create() {
     FastNoiseLite noise;
     srand(time(NULL));
     int seed = 1001 * rand();
-    // vai virar função da classe Debugger
-    std::cout << "Gerando mundo com a semente: " << seed << std::endl;
+    this->seed = seed;
     noise.SetSeed(seed);
     noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
     int yRange = 1;
@@ -153,7 +153,7 @@ void World::create() {
 
                         for (int by = 0; by <  CHUNK_HEIGHT; by++) {
                             if (by == 0) {
-                                world.at(chunkPos).setBlock(bx, by, bz, 4);
+                                world.at(chunkPos).setBlock(bx, by, bz, 4); // Rocha matriz
                             }
                             else if (by < terrainHeight) {
                                 float worldY = (float)by;
@@ -187,6 +187,37 @@ Chunk* World::getChunk(int x, int y, int z) {
         return &it->second;
     }
     return nullptr;
+}
+
+const Chunk* World::getChunk(int x, int y, int z) const{
+    auto it = world.find({x, y, z});
+    if (it != world.end()) {
+        return &it->second;
+    }
+    return nullptr;
+}
+
+const std::map<Vec3i, Chunk> World::getChunks() const{
+    return world;
+}
+
+int World::getBlockType(const Vec3i &pos) const {
+    int chunkX = static_cast<int>(floor((float)pos.x/CHUNK_WIDTH));
+    int chunkY = static_cast<int>(floor((float)pos.y/CHUNK_HEIGHT));
+    int chunkZ = static_cast<int>(floor((float)pos.z/CHUNK_DEPTH));
+    Vec3i chunkPos = { chunkX, chunkY, chunkZ };
+    const Chunk* chunk = getChunk(chunkPos.x, chunkPos.y, chunkPos.z);
+    if (chunk) {
+        int localX = pos.x - chunkPos.x * CHUNK_WIDTH;
+        int localY = pos.y - chunkPos.y * CHUNK_HEIGHT;
+        int localZ = pos.z - chunkPos.z * CHUNK_DEPTH;
+        return chunk->getBlock(localX, localY, localZ);
+    }
+    return -1;
+}
+
+int World::getSeed() const {
+    return seed;
 }
 
 void World::addBlock(const Vec3i &pos) {

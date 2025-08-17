@@ -1,11 +1,16 @@
 #include "Other/stb_image.h"
 
+#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
+
 #include "Common/main.h"
 #include "Shaders/main.h"
 #include "Camera/main.h"
 #include "World/main.h"
 #include "Debugger/main.h"
 #include "Texture/main.h"
+#include "Debugger/main.h"
 
 struct ApplicationContext {
     Camera *camera;
@@ -47,7 +52,13 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) { // pode ser mantida
-    glViewport(0, 0, width, height);
+     glViewport(0, 0, width, height);
+
+    ApplicationContext* context = static_cast<ApplicationContext*>(glfwGetWindowUserPointer(window));
+    
+    if (context && context->camera) {
+        context->camera->updateProj((float)width, (float)height);
+    }
 }
 
 int main() {
@@ -79,8 +90,17 @@ int main() {
 
     glEnable(GL_DEPTH_TEST);
 
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO &io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    const char* glsl_version = "#version 330";
+    ImGui_ImplOpenGL3_Init(glsl_version);
+
     // Inicializa o mundo
-    World world(5);
+    World world(10);
     world.create();
 
     // Inicializa a câmera
@@ -137,74 +157,95 @@ int main() {
     // unsigned int lightColorLoc = glGetUniformLocation(shaderProgram.ID, "lightColor");
     // unsigned int lightDirLoc = glGetUniformLocation(shaderProgram.ID, "lightDir");
 
-
-    float timeSinceLastUpdate = 0.0f;
-    float deltaTime = 0.0f;
-    float lastFrame = 0.0f;
-    int frameCount = 0;
+    Debugger debug;
+    
+    auto screen = ftxui::ScreenInteractive::Fullscreen();
+    ftxui::Component doc = ftxui::Renderer([&debug] {
+        return debug.Render();
+    });
+    std::thread debug_t([&] {
+        screen.Loop(doc);
+    });
+    
+    float deltaTime = 0.05f;
+    float angle = 0.0f;
 
     // Dentro do loop principal
-    float angle = 0.0f;
     while (!glfwWindowShouldClose(window)) {
-
-        float currentFrame = glfwGetTime();
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
-
-        frameCount++;
-        timeSinceLastUpdate += deltaTime;
-        if (timeSinceLastUpdate >= 1.0f) {
-            std::cout << "FPS atual: " << frameCount << std::endl;
-            frameCount = 0;
-            timeSinceLastUpdate = 0.0f;
-        }
 
         glfwPollEvents();
 
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        {
+            ImGui::Begin("Painel de Debug"); // Cria uma janela chamada "Painel de Debug"
+            
+            ImGui::Text("Posição da Câmera:");
+            glm::vec3 camPos = camera.getPos();
+            ImGui::Text("X: %.2f, Y: %.2f, Z: %.2f", camPos.x, camPos.y, camPos.z);
+            
+            // Exemplo com FPS
+            ImGui::Text("Aplicação com média de %.3f ms/quadro (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+
+            ImGui::End();
+        }
+
         camera.updateCamera();
 
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL); // Libera o cursor
+            io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
+        } else {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Trava o cursor
+            io.ConfigFlags |= ImGuiConfigFlags_NoMouse; // ImGui ignora o mouse
+        }
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+            camera.processKeyboard(FORWARD, deltaTime*3);
+        } else if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
             camera.processKeyboard(FORWARD, deltaTime);
         }
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+            camera.processKeyboard(BACKWARD, deltaTime*3);
+        } else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {    
             camera.processKeyboard(BACKWARD, deltaTime);
         }
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+            camera.processKeyboard(LEFT, deltaTime*3);
+        } else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
             camera.processKeyboard(LEFT, deltaTime);
         } 
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+            camera.processKeyboard(RIGHT, deltaTime*3);
+        } else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
             camera.processKeyboard(RIGHT, deltaTime);
         }
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            camera.processKeyboard(UP, deltaTime);
+            camera.processKeyboard(UP, deltaTime*1.5);
         }
         if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
             Vec3i pos = { (int)camera.getPos().x, (int)camera.getPos().y - 2, (int)camera.getPos().z };
             if (!world.hasBlockAt(pos)) {
-                camera.processKeyboard(DOWN, deltaTime);
+                camera.processKeyboard(DOWN, deltaTime*1.5);
             }
-        }
-        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-            camera.processKeyboard(FORWARD, deltaTime*3);
         }
 
         glClearColor(0.53f, 0.81f, 0.92f, 1.0f); 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        RayCastResult rcResult = camera.detectBlock(world, 10);
-        
         shaderProgram.use();
-
+        
         glm::vec3 lightPosition(camera.getPos());
         shaderProgram.setVec3("lightPos", lightPosition.x, lightPosition.y, lightPosition.z);
         shaderProgram.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
         angle += 0.01f;
-
+        
         shaderProgram.setInt("blockTextures[0]", 0);
         shaderProgram.setInt("blockTextures[1]", 1);
         shaderProgram.setInt("blockTextures[2]", 2);
         shaderProgram.setInt("blockTextures[3]", 3);
-
+        
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, grassTexture.ID);
         glActiveTexture(GL_TEXTURE1);
@@ -213,17 +254,22 @@ int main() {
         glBindTexture(GL_TEXTURE_2D, stoneTexture.ID);
         glActiveTexture(GL_TEXTURE3);
         glBindTexture(GL_TEXTURE_2D, rootstoneTexture.ID);
-
+        
         world.draw(shaderProgram, camera.getProj(), camera.getView(), camera.getPos());
 
+        
+        RayCastResult rcResult = camera.detectBlock(world, 10);
         if (rcResult.hit) {
-            // vai virar função da classe Debugger
-            //std::cout << "Bloco detectado" << std::endl;
             world.highlight(borderShaderProgram, rcResult.blockPos, camera.getProj(), camera.getView());
         }
+        
+        debug.drawChunkGrid(camera, camera.getProj(), camera.getView());
 
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+                
         glClear(GL_DEPTH_BUFFER_BIT);
-
+        
         crosshairShaderProgram.use();
         glm::mat4 projOrtho = glm::ortho(0.0f, 800.0f, 0.0f, 600.0f);
         glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(800.0f / 2.0f, 600.0f / 2.0f, 0.0f));
@@ -233,8 +279,31 @@ int main() {
         glBindVertexArray(crosshairVAO);
         glDrawArrays(GL_LINES, 0, 4);
         glBindVertexArray(0);
+        
         glfwSwapBuffers(window);
+        
+        // int chunkX = static_cast<int>(floor((float)camera.getPos().x/CHUNK_WIDTH));
+        // int chunkY = static_cast<int>(floor((float)camera.getPos().y/CHUNK_HEIGHT));
+        // int chunkZ = static_cast<int>(floor((float)camera.getPos().z/CHUNK_DEPTH));
+        // Vec3i chunkPos = { chunkX, chunkY, chunkZ };
+        // Chunk* temp_chunk = world.getChunk(chunkPos.x, chunkPos.y, chunkPos.z);
+        // 
+        // debug.updateBlockInfo(world, rcResult.blockPos);
+        // debug.updateCamInfo(camera);
+        // debug.updateFPS();
+        // debug.updateSeed(world.getSeed());
+        // if (temp_chunk != nullptr) {
+        //     debug.updateChunkInfo(*temp_chunk);
+        // }
+        // screen.Post(ftxui::Event::Custom);
     }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
+    screen.Exit();
+    debug_t.join();
 
     glfwTerminate();
     return 0;

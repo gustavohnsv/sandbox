@@ -8,11 +8,19 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "ftxui/component/component.hpp"
+#include "ftxui/component/screen_interactive.hpp"
+#include "ftxui/dom/elements.hpp"
+
 // --- Bibliotecas Padrão do C++ ---
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
+#include <chrono>
+#include <thread>
+#include <atomic>
 #include <vector>
 #include <map>
 

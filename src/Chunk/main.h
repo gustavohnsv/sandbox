@@ -10,6 +10,7 @@ const int CHUNK_DEPTH = 16;
 class Chunk {
     public:
         Chunk();
+        int getCount() const;
         void buildMesh();
         void draw();
         void setBlock(int x, int y, int z, int type);

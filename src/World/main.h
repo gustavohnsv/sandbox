@@ -11,10 +11,15 @@ class Shader;
 class World {
     public:
         int range;
+        int seed;
 
         World(int range);
         void create();
         Chunk* getChunk(int x, int y, int z);
+        const Chunk* getChunk(int x, int y, int z) const;
+        const std::map<Vec3i, Chunk> getChunks() const;
+        int getBlockType(const Vec3i &pos) const;
+        int getSeed() const;
         void addBlock(const Vec3i &pos);
         void removeBlock(const Vec3i &pos);
         void draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &view, const glm::vec3 &cameraPos);
