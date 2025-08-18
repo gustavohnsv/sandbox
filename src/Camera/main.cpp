@@ -11,7 +11,7 @@ Camera::Camera(float width, float height, glm::vec3 pos) {
     cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
     cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
     cameraRight = glm::normalize(glm::cross(cameraFront, glm::vec3(0.0f, 1.0f, 0.0f)));
-    proj = glm::perspective(glm::radians(ZOOM), width / height, 0.1f, 100.0f); 
+    proj = glm::perspective(glm::radians(ZOOM), width / height, 0.01f, 100.0f); 
     updateCamera();
 }
 
@@ -88,6 +88,10 @@ void Camera::updateProj(float width, float height) {
     if (height > 0) {
         proj = glm::perspective(glm::radians(ZOOM), width / height, 0.1f, 100.0f);
     }
+}
+
+void Camera::updatePos(const glm::vec3 &pos) {
+    this->cameraPos = pos;
 }
 
 RayCastResult Camera::detectBlock(const World &world, float maxDistance) {

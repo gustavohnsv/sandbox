@@ -7,7 +7,7 @@ in vec3 FragPos;
 in float BlockType;
 in vec2 TexCoord;
 
-uniform sampler2D blockTextures[4];
+uniform sampler2D blockTextures[32];
 
 uniform vec3 lightColor;
 uniform vec3 lightPos;
@@ -30,6 +30,9 @@ void main()
     } 
     else if (type == 4) {
         texColor = texture(blockTextures[3], TexCoord); // Textura de Pedra (y = 0)
+    }
+    else if (type == 5) {
+        texColor = texture(blockTextures[4], TexCoord);
     } else {
         // Cor padrão para debug, caso o tipo seja desconhecido
         texColor = vec4(1.0, 0.0, 1.0, 1.0); // Rosa
@@ -64,6 +67,9 @@ void main()
     float fogFactor = clamp((distanceCamera - fogStart)/(distanceCamera - fogEnd), 0.0, 1.0);
     vec3 fogColor = vec3(0.53, 0.81, 0.92); 
     finalColor = mix(finalColor, fogColor, fogFactor);
-    FragColor = vec4(finalColor, 1.0);
-
+    if (type == 5) {
+        FragColor = vec4(finalColor, 0.1);
+    } else {
+        FragColor = vec4(finalColor, 1.0);
+    }
 }

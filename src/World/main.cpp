@@ -1,11 +1,11 @@
 #include "main.h"
-#include "../Shaders/main.h"
-#include "../Other/FastNoiseLite.h"
 
-World::World(int range) {
+World::World() {
     // 1. DEFINIÇÃO DAS VARIÁVEIS
-    this->range = range;
-    this->seed = 0;
+    srand(time(NULL));
+    this->seed = 1001 * rand();
+    noise.SetSeed(seed);
+    noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
 
     // 2. CRIANDO OS OBJETOS PARA VERTICES E ARESTAS
     float vData[] = {
@@ -127,58 +127,7 @@ World::World(int range) {
 }
 
 void World::create() {
-    FastNoiseLite noise;
-    srand(time(NULL));
-    int seed = 1001 * rand();
-    this->seed = seed;
-    noise.SetSeed(seed);
-    noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    int yRange = 1;
-    for (int i = -range; i < range; i++) {
-        for (int j = -range; j < range; j++) {
-                // 1. CRIAÇÃO DOS CHUNKS
-                Vec3i chunkPos = {i, 0, j};
-                world[chunkPos] = Chunk();
-
-                // 2. PREENCHIMENTO DOS CHUNKS
-                for (int bx = 0; bx < CHUNK_WIDTH; bx++) {
-                    for (int bz = 0; bz < CHUNK_DEPTH; bz++) {
-
-                        float worldX = (i * CHUNK_WIDTH) + bx;
-                        float worldZ = (j * CHUNK_DEPTH) + bz;
-                        noise.SetFrequency(0.025f); // valores menores -> montanhas mais altas
-                        float terrainNoise = noise.GetNoise(worldX, worldZ);
-                        int terrainHeight = (int)(CHUNK_HEIGHT/2) * (1.0f + terrainNoise);
-                        //int terrainHeight = 40 + (int)(30.0f * (terrainNoise + 1.0f) * 0.5f);
-
-                        for (int by = 0; by <  CHUNK_HEIGHT; by++) {
-                            if (by == 0) {
-                                world.at(chunkPos).setBlock(bx, by, bz, 4); // Rocha matriz
-                            }
-                            else if (by < terrainHeight) {
-                                float worldY = (float)by;
-                                noise.SetFrequency(0.1f);
-                                float caveNoise = noise.GetNoise(worldX, worldY, worldZ);
-                                if (caveNoise < 0.4f) {
-                                    if (terrainHeight - by < 3) {
-                                        world.at(chunkPos).setBlock(bx, by, bz, 1); // Grama
-                                    } else if (terrainHeight - by >= 3 && terrainHeight - by < 6) {
-                                        world.at(chunkPos).setBlock(bx, by, bz, 2); // Terra
-                                    } else {
-                                        world.at(chunkPos).setBlock(bx, by, bz, 3); // Pedra
-                                    }
-                                } else {
-                                world.at(chunkPos).setBlock(bx, by, bz, 0); // Ar
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 3. CONSTRUÇÃO DA MALHA OTIMIZADA
-            world.at(chunkPos).buildMesh();
-        }
-    }
+    return;
 }
 
 Chunk* World::getChunk(int x, int y, int z) {
@@ -250,16 +199,116 @@ void World::removeBlock(const Vec3i &pos) {
     }
 }
 
+void World::update(const glm::vec3 &pos) {
+    int renderDistance = 5; // Isso cria uma área de (5*2+1) x (5*2+1) = 11x11 chunks
+
+    // Encontra em qual chunk o jogador está
+    int playerChunkX = static_cast<int>(floor(pos.x / CHUNK_WIDTH));
+    int playerChunkZ = static_cast<int>(floor(pos.z / CHUNK_DEPTH));
+
+    // Loop através da área de renderização ao redor do jogador
+    for (int i = playerChunkX - renderDistance; i <= playerChunkX + renderDistance; i++) {
+        for (int j = playerChunkZ - renderDistance; j <= playerChunkZ + renderDistance; j++) {
+            Vec3i chunkPos = {i, 0, j};
+
+            // Verifica se o chunk já existe no nosso mapa
+            if (world.find(chunkPos) == world.end()) {
+                // O chunk não existe, então vamos criá-lo!
+                world[chunkPos] = Chunk(); // Adiciona um novo chunk ao mapa
+                generateChunkData(chunkPos); // Gera os dados dos blocos para ele
+                world.at(chunkPos).buildMesh(); // Constrói a malha para poder desenhar
+            }
+        }
+    }
+
+    std::vector<Vec3i> chunksToUnload; // Lista de chunks para remover
+
+    // Itera sobre todos os chunks que estão atualmente carregados no mapa
+    for (auto const& [pos, chunk] : world) {
+        // Calcula a distância do chunk até o jogador
+        int dist_x = abs(pos.x - playerChunkX);
+        int dist_z = abs(pos.z - playerChunkZ);
+
+        // Se o chunk está além da distância de renderização, marque-o para remoção
+        if (dist_x > renderDistance || dist_z > renderDistance) {
+            chunksToUnload.push_back(pos);
+        }
+    }
+
+    // Remove os chunks marcados do mapa
+    // Isso libera a memória que eles estavam usando
+    for (const auto& pos : chunksToUnload) {
+        // Em um jogo real, aqui você salvaria o chunk em um arquivo se ele foi modificado
+        world.erase(pos);
+    }
+}
+
+void World::generateChunkData(Vec3i chunkPos) {
+        // 2. PREENCHIMENTO DOS CHUNKS
+        for (int bx = 0; bx < CHUNK_WIDTH; bx++) {
+            for (int bz = 0; bz < CHUNK_DEPTH; bz++) {
+
+                float worldX = (chunkPos.x * CHUNK_WIDTH) + bx;
+                float worldZ = (chunkPos.z * CHUNK_DEPTH) + bz;
+                noise.SetFrequency(0.025f); // 0.0005 planice <=> 0.5 montanha
+                float terrainNoise = noise.GetNoise(worldX, worldZ);
+                int terrainHeight = (int)(CHUNK_HEIGHT/2) * (1.0f + terrainNoise);
+
+                for (int by = 0; by <  CHUNK_HEIGHT; by++) {
+                    if (by == 0) {
+                        world.at(chunkPos).setBlock(bx, by, bz, 4); // Rocha matriz
+                    }
+                    else if (by < terrainHeight) {
+                        float worldY = (float)by;
+                        noise.SetFrequency(0.0755f);
+                        float caveNoise = noise.GetNoise(worldX, worldY, worldZ);
+                        if (caveNoise < 0.5f) {
+                            if (terrainHeight - by < 3) {
+                                world.at(chunkPos).setBlock(bx, by, bz, 1); // Grama
+                            } else if (terrainHeight - by >= 3 && terrainHeight - by < 6) {
+                                world.at(chunkPos).setBlock(bx, by, bz, 2); // Terra
+                            } else {
+                                world.at(chunkPos).setBlock(bx, by, bz, 3); // Pedra
+                            }
+                        } else {
+                        world.at(chunkPos).setBlock(bx, by, bz, 0); // Ar
+                    }
+                }
+            }
+        }
+    }
+
+    // 3. CONSTRUÇÃO DA MALHA OTIMIZADA
+    world.at(chunkPos).buildMesh();
+}
+
 void World::draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &view, const glm::vec3 &cameraPos) {
     shader.use();
     shader.setMat4("projection", projection);
     shader.setMat4("view", view);
     shader.setVec3("cameraPos", cameraPos.x, cameraPos.y, cameraPos.z);
-    for (auto const& [pos, chunk]: world) {
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(pos.x * CHUNK_WIDTH, pos.y * CHUNK_HEIGHT, pos.z * CHUNK_DEPTH));
-        shader.setMat4("model", model);
-        const_cast<Chunk&>(chunk).draw();
+    
+    // Mesma lógica do update: calcula a área de renderização
+    int renderDistance = 5;
+    int playerChunkX = static_cast<int>(floor(cameraPos.x / CHUNK_WIDTH));
+    int playerChunkZ = static_cast<int>(floor(cameraPos.z / CHUNK_DEPTH));
+
+    // Itera apenas sobre os chunks que devem estar visíveis
+    for (int i = playerChunkX - renderDistance; i <= playerChunkX + renderDistance; i++) {
+        for (int j = playerChunkZ - renderDistance; j <= playerChunkZ + renderDistance; j++) {
+            Vec3i pos = {i, 0, j};
+            
+            // Tenta encontrar o chunk no mapa
+            auto it = world.find(pos);
+            if (it != world.end()) {
+                // Se o chunk existe, desenha ele
+                Chunk& chunk = it->second;
+                glm::mat4 model = glm::mat4(1.0f);
+                model = glm::translate(model, glm::vec3(pos.x * CHUNK_WIDTH, pos.y * CHUNK_HEIGHT, pos.z * CHUNK_DEPTH));
+                shader.setMat4("model", model);
+                chunk.draw();
+            }
+        }
     }
 }
 

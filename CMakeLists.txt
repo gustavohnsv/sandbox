@@ -59,6 +59,7 @@ add_executable(
     src/Camera/main.cpp
     src/Chunk/main.cpp
     src/Texture/main.cpp
+    src/Player/main.cpp
     src/Debugger/main.cpp
     vendor/glad/src/glad.c
 )

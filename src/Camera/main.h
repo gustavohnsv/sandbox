@@ -28,7 +28,10 @@ struct RayCastResult {
 
 class Camera {
     public:
-
+        glm::vec3 cameraRight;
+        glm::vec3 cameraFront;
+        glm::vec3 cameraUp;
+        
         Camera(float width = 800.f, float height = 600.0f, glm::vec3 pos = glm::vec3(0.0f, 0.0f, 6.0f));
         glm::mat4 getView() const;
         glm::mat4 getProj() const;
@@ -37,12 +40,10 @@ class Camera {
         void processMouseMovement(double xpos, double ypos, bool constrainPitch = true);
         void updateCamera();
         void updateProj(float width, float height);
+        void updatePos(const glm::vec3 &pos);
         RayCastResult detectBlock(const World &world, float maxDistance);
     private:
         glm::vec3 cameraPos;
-        glm::vec3 cameraFront;
-        glm::vec3 cameraUp;
-        glm::vec3 cameraRight;
         glm::mat4 proj;
         float lastX, lastY;
         float yaw, pitch;

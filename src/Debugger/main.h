@@ -1,6 +1,10 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
+#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
+
 #include "../Common/main.h"
 #include "../Camera/main.h"
 #include "../Chunk/main.h"
@@ -9,12 +13,12 @@
 
 class Debugger {
     public:
-    std::string camInfo = "Camêra: [N/A]";
-    std::string blockPosInfo = "Bloco: [N/A]";
-    std::string blockTypeInfo = "Tipo: [N/A]";
-    std::string seedInfo = "Semente: [N/A]";
+    std::string camInfo = "Posição atual da camêra: [N/A]";
+    std::string blockPosInfo = "Posição atual do bloco: [N/A]";
+    std::string blockTypeInfo = "Tipo atual do bloco: [N/A]";
+    std::string seedInfo = "Semente atual do mundo: [N/A]";
     std::string fpsInfo = "FPS: [Calculando...]";
-    std::string chunkInfo = "Malha: [Calculando...]";
+    std::string chunkInfo = "Quantidade de malhas da chunk atual: [Calculando...]";
     
     Debugger();
     void updateBlockInfo(const World &world, const Vec3i pos);
@@ -22,10 +26,8 @@ class Debugger {
     void updateChunkInfo(const Chunk &chunk);
     void updateFPS();
     void updateSeed(const int seed);
-
+    
     void drawChunkGrid(const Camera& camera, const glm::mat4& projection, const glm::mat4& view);
-
-    ftxui::Element Render();
     
     private:
         std::chrono::time_point<std::chrono::high_resolution_clock> lastTime;

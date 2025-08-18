@@ -104,28 +104,43 @@ void Debugger::updateBlockInfo(const World &world, const Vec3i pos) {
     std::stringstream ss1, ss2;
     ss1.precision(2);
     ss1.precision(2);
-    ss1 << "Bloco: [" << pos.x << "," << pos.y << "," << pos.z << "]";
-    blockPosInfo = ss1.str();
+    if (pos.x == 999 && pos.y == 999 && pos.z == 999) {
+        ss1 << "Posição atual do bloco: [N/A]";
+        blockPosInfo = ss1.str();
+    } else {
+        ss1 << "Posição atual do bloco: [" << pos.x << "," << pos.y << "," << pos.z << "]";
+        blockPosInfo = ss1.str();
+    }
     int blockType = world.getBlockType(pos);
-    ss2 << "Tipo: [" << blockType << "]";
-    blockTypeInfo = ss2.str();
+    if (blockType == -1) {
+        ss2 << "Tipo atual do bloco: [N/A]";
+        blockTypeInfo = ss2.str();
+    } else {
+        ss2 << "Tipo atual do bloco: [" << blockType << "]";
+        blockTypeInfo = ss2.str();
+    }
 }
 
 void Debugger::updateCamInfo(const Camera &camera) {
     glm::vec3 pos = camera.getPos();
     std::stringstream ss;
-    ss.precision(2);
-    ss << "Câmera: [" << pos.x << "," << pos.y << "," << pos.z << "]";
+    ss.precision(4);
+    ss << "Posição atual da camêra: [" << pos.x << "," << pos.y << "," << pos.z << "]";
     camInfo = ss.str();
 }
 
 void Debugger::updateChunkInfo(const Chunk &chunk) {
     std::stringstream ss;
     ss.precision(2);
-    ss << "Malhas: " << chunk.getCount();
-    chunkInfo = ss.str();
+    if (&chunk != nullptr) {
+        ss << "Quantidade de malhas da chunk atual: " << chunk.getCount();
+        chunkInfo = ss.str();
+    } else {
+        ss << "Quantidade de malhas da chunk atual: 0";
+        chunkInfo = ss.str();
+    }
 }
-
+// talvez inútil pois ImGui já oferece uma função sofisticada para FPS
 void Debugger::updateFPS() {
     frameCount++;
     auto currentTime = std::chrono::high_resolution_clock::now();
@@ -144,7 +159,7 @@ void Debugger::updateFPS() {
 void Debugger::updateSeed(const int seed) {
     std::stringstream ss;
     ss.precision(2);
-    ss << "Semente: " << seed;
+    ss << "Semente atual do mundo: " << seed;
     seedInfo = ss.str();
 }
 
@@ -170,21 +185,6 @@ void Debugger::drawChunkGrid(const Camera& camera, const glm::mat4 &proj, const 
     glBindVertexArray(internalGridVAO);
     glDrawArrays(GL_LINES, 0, internalGridVertexCount);
     glBindVertexArray(0);
-}
-
-ftxui::Element Debugger::Render() {
-    using namespace ftxui;
-    return vbox({
-        text(fpsInfo),
-        text(camInfo),
-        text(blockPosInfo),
-        text(blockTypeInfo),
-        separator(),
-        text(seedInfo),
-        text(chunkInfo),
-        separator(),
-        text("Monitor"),
-    }) | border;
 }
 
 

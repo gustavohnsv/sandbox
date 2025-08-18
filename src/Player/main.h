@@ -1,10 +1,9 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include "../Common/main.h"
-
 class Player {
-
+    public:
+    private:
 };
 
 #endif // PLAYER_H
