@@ -1,11 +1,12 @@
 #include "main.h"
-#include <cstring>
 
 Chunk::Chunk() {
     memset(blocks, 0, sizeof(blocks));
+    memset(heightMap, 0, sizeof(heightMap));
     VAO = 0;
     VBO = 0;
     count = 0;
+    modified = false;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
 
@@ -28,6 +29,28 @@ Chunk::Chunk() {
 
     glBindVertexArray(0);
 
+}
+
+bool Chunk::saveFile(const std::string &filepath) const {
+    std::ofstream output(filepath, std::ios::binary);
+    if (!output) {
+        std::cout << "Erro ao gerar arquivo de salvamento" << std::endl;
+        return false;
+    }
+    output.write(reinterpret_cast<const char*>(blocks), sizeof(blocks));
+    output.close();
+    return true;
+}
+
+bool Chunk::loadFile(const std::string &filepath) {
+    std::ifstream input(filepath, std::ios::binary);
+    if (!input) {
+        return false;
+    }
+    input.read(reinterpret_cast<char*>(blocks), sizeof(blocks));
+    input.close();
+    buildMesh();
+    return true;
 }
 
 int Chunk::getCount() const {
@@ -121,9 +144,23 @@ void Chunk::draw() {
     glBindVertexArray(0);
 }
 
-void Chunk::setBlock(int x, int y, int z, int type) {
+void Chunk::setBlock(int x, int y, int z, int type, bool isPlayerAction) {
     if (x >= 0 && x < CHUNK_WIDTH && y >= 0 && y < CHUNK_HEIGHT && z >= 0 && z < CHUNK_DEPTH) {
         blocks[x][y][z] = type;
+        if (isPlayerAction) modified = true;
+    }
+}
+
+void Chunk::updateHeightMap() {
+    for (int x = 0; x < CHUNK_WIDTH; x++) {
+        for (int z = 0; z < CHUNK_DEPTH; z++) {
+            for (int y = CHUNK_HEIGHT; y >= 0; y--) {
+                if (blocks[x][y][z] != 0) {
+                    heightMap[x][z] = y;
+                    break;
+                }
+            }
+        }
     }
 }
 
@@ -132,6 +169,10 @@ int Chunk::getBlock(int x, int y, int z) const {
         return blocks[x][y][z];
     }
     return 0;
+}
+
+bool Chunk::isModified() const {
+    return modified;
 }
 
 void Chunk::check() {

@@ -156,7 +156,7 @@ int main() {
     for (int y = CHUNK_HEIGHT - 1; y>= 0; y--) {
         Vec3i pos = {0, y, 0};
         if (world.hasBlockAt(pos)) {
-            spawnPoint = glm::vec3(0.5f, y, 0.5f);
+            spawnPoint = glm::vec3(0.5f, y+2, 0.5f);
             break;
         }
     }
@@ -244,6 +244,15 @@ int main() {
         glfwPollEvents();
 
         // ============================================================================= 
+        // Localização da chunk atual do jogador no mundo
+        // =============================================================================
+        int chunkX = static_cast<int>(floor((float)camera.getPos().x/CHUNK_WIDTH));
+        int chunkY = static_cast<int>(floor((float)camera.getPos().y/CHUNK_HEIGHT));
+        int chunkZ = static_cast<int>(floor((float)camera.getPos().z/CHUNK_DEPTH));
+        Vec3i chunkPos = { chunkX, chunkY, chunkZ };
+        Chunk* temp_chunk = world.getChunk(chunkPos.x, chunkPos.y, chunkPos.z);   
+
+        // ============================================================================= 
         // Atualização dos dados da janela de depuração
         // =============================================================================
         ImGui_ImplOpenGL3_NewFrame();
@@ -254,6 +263,14 @@ int main() {
             
             ImGui::Text(debug.camInfo.c_str());
             ImGui::Text(debug.chunkInfo.c_str());
+            if (temp_chunk != nullptr) {
+                bool chunkState = (*temp_chunk).isModified();
+                if (chunkState) {
+                    ImGui::Text("Chunk modificada: Verdadeiro");
+                } else {
+                    ImGui::Text("Chunk modificada: Falso");
+                }
+            }
             ImGui::Text(debug.seedInfo.c_str());
             ImGui::Text(debug.blockPosInfo.c_str());
             ImGui::Text(debug.blockTypeInfo.c_str());
@@ -321,7 +338,7 @@ int main() {
         // =============================================================================
         shaderProgram.use();
         glm::vec3 lightPosition(camera.getPos());
-        shaderProgram.setVec3("lightPos", lightPosition.x, lightPosition.y, lightPosition.z);
+        shaderProgram.setVec3("lightPos", lightPosition.x, lightPosition.y+1, lightPosition.z);
         shaderProgram.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
         angle += 0.01f;
         shaderProgram.setInt("blockTextures[0]", 0);
@@ -386,12 +403,7 @@ int main() {
         
         // ============================================================================= 
         // Atualização dos dados para a janela de depuração
-        // =============================================================================
-        int chunkX = static_cast<int>(floor((float)camera.getPos().x/CHUNK_WIDTH));
-        int chunkY = static_cast<int>(floor((float)camera.getPos().y/CHUNK_HEIGHT));
-        int chunkZ = static_cast<int>(floor((float)camera.getPos().z/CHUNK_DEPTH));
-        Vec3i chunkPos = { chunkX, chunkY, chunkZ };
-        Chunk* temp_chunk = world.getChunk(chunkPos.x, chunkPos.y, chunkPos.z);      
+        // =============================================================================   
         debug.updateBlockInfo(world, rcResult.blockPos);
         debug.updateCamInfo(camera);
         debug.updateFPS();
@@ -402,6 +414,11 @@ int main() {
     // ============================================================================= 
     // Finalização do programa
     // =============================================================================
+    std::filesystem::path filepath = "worlds/sandbox_world";
+    if (std::filesystem::exists(filepath)) {
+        std::filesystem::remove_all(filepath);
+        std::cout << "Arquivos do mundo anterior limpo." << std::endl;
+    }
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();

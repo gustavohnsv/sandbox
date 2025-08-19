@@ -31,12 +31,13 @@ class World {
         void addBlock(const Vec3i &pos);
         void removeBlock(const Vec3i &pos);
         void update(const glm::vec3 &pos);
-        void generateChunkData(Vec3i Chunkpos);
+        void generateChunkData(Chunk &chunk, Vec3i Chunkpos);
         void draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &view, const glm::vec3 &cameraPos);
         void highlight(Shader &shader, const Vec3i &pos, const glm::mat4 &projection, const glm::mat4 &view);
         bool hasBlockAt(const Vec3i &pos) const;
     
     private:
+        std::filesystem::path saveDir;
         unsigned int VAO, VBO;
         unsigned int border_VAO, border_VBO;
         std::map<Vec3i, Chunk> world;

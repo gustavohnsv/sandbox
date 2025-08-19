@@ -40,13 +40,16 @@ void main()
 
     vec3 objectColor = texColor.rgb;
 
-    float ambient = 0.25;
+    float ambient = 0.5;
+    // if (lightPos.y < 64) {
+    //     ambient = 0.01;
+    // }
 
     // intensidade da luz -> quanto menor, maior a intensidade
     float linear = 0.05;
 
     // suavidade em distância maiores -> quanto menor, mais discrepante será a iluminação a grande distâncias
-    float square = 0.1;
+    float square = 0.01;
 
     // cálculo da atenuação
     float distance = length(lightPos - FragPos);
@@ -62,8 +65,8 @@ void main()
     vec3 finalColor = objectColor * (ambient + (diffuse * attenuation));
 
     float distanceCamera = length(cameraPos - FragPos);
-    float fogStart = 20.0;
-    float fogEnd = 60.0;
+    float fogStart = 0.0;
+    float fogEnd = 80.0;
     float fogFactor = clamp((distanceCamera - fogStart)/(distanceCamera - fogEnd), 0.0, 1.0);
     vec3 fogColor = vec3(0.53, 0.81, 0.92); 
     finalColor = mix(finalColor, fogColor, fogFactor);

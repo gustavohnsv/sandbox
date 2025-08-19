@@ -23,3 +23,6 @@ build/
 # Executável final (se por acaso ele for gerado fora da pasta 'build')
 sandbox
 sandbox.exe
+
+# Arquivos de mundo
+worlds/

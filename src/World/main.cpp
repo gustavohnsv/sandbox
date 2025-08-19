@@ -6,6 +6,16 @@ World::World() {
     this->seed = 1001 * rand();
     noise.SetSeed(seed);
     noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+    saveDir = "worlds/sandbox_world";
+    if (std::filesystem::exists(saveDir)) {
+        try {
+            std::filesystem::remove_all(saveDir);
+            std::cout << "Arquivos do mundo anterior limpo." << std::endl;
+        } catch (const std::filesystem::filesystem_error &e) {
+            std::cout << "Erro ao remover arquivos do mundo anterior" << e.what() << std::endl;
+        }
+    }
+    std::filesystem::create_directories(saveDir);
 
     // 2. CRIANDO OS OBJETOS PARA VERTICES E ARESTAS
     float vData[] = {
@@ -179,7 +189,7 @@ void World::addBlock(const Vec3i &pos) {
         int localX = pos.x - chunkPos.x * CHUNK_WIDTH;
         int localY = pos.y - chunkPos.y * CHUNK_HEIGHT;
         int localZ = pos.z - chunkPos.z * CHUNK_DEPTH;
-        chunk->setBlock(localX, localY, localZ, 1);
+        chunk->setBlock(localX, localY, localZ, 1, true);
         chunk->buildMesh();
     }
 }
@@ -194,7 +204,7 @@ void World::removeBlock(const Vec3i &pos) {
         int localX = pos.x - chunkPos.x * CHUNK_WIDTH;
         int localY = pos.y - chunkPos.y * CHUNK_HEIGHT;
         int localZ = pos.z - chunkPos.z * CHUNK_DEPTH;
-        chunk->setBlock(localX, localY, localZ, 0);
+        chunk->setBlock(localX, localY, localZ, 0, true);
         chunk->buildMesh();
     }
 }
@@ -213,10 +223,13 @@ void World::update(const glm::vec3 &pos) {
 
             // Verifica se o chunk já existe no nosso mapa
             if (world.find(chunkPos) == world.end()) {
-                // O chunk não existe, então vamos criá-lo!
-                world[chunkPos] = Chunk(); // Adiciona um novo chunk ao mapa
-                generateChunkData(chunkPos); // Gera os dados dos blocos para ele
-                world.at(chunkPos).buildMesh(); // Constrói a malha para poder desenhar
+                std::string filename = "chunk_" + std::to_string(i) + "_" + std::to_string(j) + ".chunk";
+                std::filesystem::path filepath = saveDir/filename;
+                Chunk newChunk;
+                if (!newChunk.loadFile(filepath.string())) {
+                    generateChunkData(newChunk, chunkPos);
+                }
+                world[chunkPos] = std::move(newChunk);
             }
         }
     }
@@ -238,40 +251,52 @@ void World::update(const glm::vec3 &pos) {
     // Remove os chunks marcados do mapa
     // Isso libera a memória que eles estavam usando
     for (const auto& pos : chunksToUnload) {
-        // Em um jogo real, aqui você salvaria o chunk em um arquivo se ele foi modificado
+        Chunk &chunk = world.at(pos);
+        if (chunk.isModified()) {
+            std::string filename = "chunk_" + std::to_string(pos.x) + "_" + std::to_string(pos.z) + ".chunk";
+            std::filesystem::path filepath = saveDir/filename;
+            chunk.saveFile(filepath.string());
+        }
         world.erase(pos);
     }
 }
 
-void World::generateChunkData(Vec3i chunkPos) {
-        // 2. PREENCHIMENTO DOS CHUNKS
-        for (int bx = 0; bx < CHUNK_WIDTH; bx++) {
-            for (int bz = 0; bz < CHUNK_DEPTH; bz++) {
+void World::generateChunkData(Chunk &chunk, Vec3i chunkPos) {
+    // 2. PREENCHIMENTO DOS CHUNKS
+    for (int bx = 0; bx < CHUNK_WIDTH; bx++) {
+        for (int bz = 0; bz < CHUNK_DEPTH; bz++) {
 
-                float worldX = (chunkPos.x * CHUNK_WIDTH) + bx;
-                float worldZ = (chunkPos.z * CHUNK_DEPTH) + bz;
-                noise.SetFrequency(0.025f); // 0.0005 planice <=> 0.5 montanha
-                float terrainNoise = noise.GetNoise(worldX, worldZ);
-                int terrainHeight = (int)(CHUNK_HEIGHT/2) * (1.0f + terrainNoise);
+            float worldX = (chunkPos.x * CHUNK_WIDTH) + bx;
+            float worldZ = (chunkPos.z * CHUNK_DEPTH) + bz;
+            noise.SetFrequency(0.005f); // 0.0005 planice <=> 0.05 montanha
+            float terrainNoise = noise.GetNoise(worldX, worldZ);
+            int terrainHeight = (int)(CHUNK_HEIGHT/2) * (1.0f + terrainNoise);
 
-                for (int by = 0; by <  CHUNK_HEIGHT; by++) {
-                    if (by == 0) {
-                        world.at(chunkPos).setBlock(bx, by, bz, 4); // Rocha matriz
+            for (int by = 0; by <  CHUNK_HEIGHT; by++) {
+                if (by == 0) {
+                    chunk.setBlock(bx, by, bz, 4, false); // Rocha matriz
+                } else {
+                    float worldY = (float)by;
+                    noise.SetFrequency(0.05);
+                    float caveNoise = noise.GetNoise(worldX, worldY, worldZ);
+                    if (caveNoise > 0.1f && by <= (int)terrainHeight*0.8) {
+                        chunk.setBlock(bx, by, bz, 0, false); // Ar         
                     }
-                    else if (by < terrainHeight) {
-                        float worldY = (float)by;
-                        noise.SetFrequency(0.0755f);
-                        float caveNoise = noise.GetNoise(worldX, worldY, worldZ);
-                        if (caveNoise < 0.5f) {
-                            if (terrainHeight - by < 3) {
-                                world.at(chunkPos).setBlock(bx, by, bz, 1); // Grama
-                            } else if (terrainHeight - by >= 3 && terrainHeight - by < 6) {
-                                world.at(chunkPos).setBlock(bx, by, bz, 2); // Terra
-                            } else {
-                                world.at(chunkPos).setBlock(bx, by, bz, 3); // Pedra
-                            }
+                    else {
+                        if (by < terrainHeight) {
+                            // Grama
+                            if (terrainHeight - by < 3) { chunk.setBlock(bx, by, bz, 1, false); } 
+                            // Terra
+                            else if (terrainHeight - by >= 3 && terrainHeight - by < 6) { chunk.setBlock(bx, by, bz, 2, false); } 
+                            // Pedra
+                            else { chunk.setBlock(bx, by, bz, 3, false); }
                         } else {
-                        world.at(chunkPos).setBlock(bx, by, bz, 0); // Ar
+                            if (by <= 42 && by >= 32) {
+                                chunk.setBlock(bx, by, bz, 5, false);
+                            } else {
+                                chunk.setBlock(bx, by, bz, 0, false);
+                            }
+                        }
                     }
                 }
             }
@@ -279,7 +304,7 @@ void World::generateChunkData(Vec3i chunkPos) {
     }
 
     // 3. CONSTRUÇÃO DA MALHA OTIMIZADA
-    world.at(chunkPos).buildMesh();
+    chunk.buildMesh();
 }
 
 void World::draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &view, const glm::vec3 &cameraPos) {
