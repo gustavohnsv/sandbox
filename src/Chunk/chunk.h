@@ -1,7 +1,7 @@
 #ifndef CHUNK_H
 #define CHUNK_H
 
-#include "../Common/main.h"
+#include "../Common/common.h"
 
 const int CHUNK_WIDTH = 16;
 const int CHUNK_HEIGHT = 128;

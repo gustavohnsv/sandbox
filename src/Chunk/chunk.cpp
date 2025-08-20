@@ -1,6 +1,6 @@
-#include "main.h"
+#include "chunk.h"
 
-#include "../World/main.h"
+#include "../World/world.h"
 
 Chunk::Chunk() {
     memset(blocks, 0, sizeof(blocks));

@@ -1,7 +1,7 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include "../Common/main.h"
+#include "../Common/common.h"
 
 enum cameraAction {
     FORWARD,

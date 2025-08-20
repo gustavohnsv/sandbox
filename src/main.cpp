@@ -4,13 +4,12 @@
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
-#include "Common/main.h"
-#include "Shaders/main.h"
-#include "Camera/main.h"
-#include "World/main.h"
-#include "Debugger/main.h"
-#include "Texture/main.h"
-#include "Debugger/main.h"
+#include "Common/common.h"
+#include "Shaders/shaders.h"
+#include "Camera/camera.h"
+#include "World/world.h"
+#include "Texture/texture.h"
+#include "Debugger/debugger.h"
 
 struct ApplicationContext {
     Camera *camera;

@@ -1,7 +1,7 @@
 #ifndef SHADERS_H
 #define SHADERS_H
 
-#include "../Common/main.h"
+#include "../Common/common.h"
 
 class Shader {
     public:

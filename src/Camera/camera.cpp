@@ -1,5 +1,5 @@
-#include "main.h"
-#include "../World/main.h"
+#include "camera.h"
+#include "../World/world.h"
 
 Camera::Camera(float width, float height, glm::vec3 pos) {
     yaw = YAW;

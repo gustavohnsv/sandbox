@@ -1,11 +1,10 @@
 #ifndef WORLD_H
 #define WORLD_H
 
-#include "../Common/main.h"
+#include "../Common/common.h"
 
-#include "../Chunk/main.h"
-#include "../Common/main.h"
-#include "../Shaders/main.h"
+#include "../Chunk/chunk.h"
+#include "../Shaders/shaders.h"
 #include "../Other/FastNoiseLite.h"
 
 const int ID_AR             = 0;

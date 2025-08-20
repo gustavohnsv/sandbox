@@ -5,11 +5,11 @@
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
-#include "../Common/main.h"
-#include "../Camera/main.h"
-#include "../Chunk/main.h"
-#include "../World/main.h"
-#include "../Shaders/main.h"
+#include "../Common/common.h"
+#include "../Camera/camera.h"
+#include "../Chunk/chunk.h"
+#include "../World/world.h"
+#include "../Shaders/shaders.h"
 
 class Debugger {
     public:

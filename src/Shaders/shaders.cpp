@@ -1,4 +1,4 @@
-#include "main.h"
+#include "shaders.h"
 
 Shader::Shader(const char* vertex, const char* frag) {
     // 1. LER OS ARQUIVOS DE SHADER

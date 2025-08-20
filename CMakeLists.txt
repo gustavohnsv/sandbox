@@ -54,13 +54,13 @@ find_package(X11 REQUIRED)
 add_executable(
     sandbox 
     src/main.cpp 
-    src/Shaders/main.cpp 
-    src/World/main.cpp
-    src/Camera/main.cpp
-    src/Chunk/main.cpp
-    src/Texture/main.cpp
-    src/Player/main.cpp
-    src/Debugger/main.cpp
+    src/Shaders/shaders.cpp 
+    src/World/world.cpp
+    src/Camera/camera.cpp
+    src/Chunk/chunk.cpp
+    src/Texture/texture.cpp
+    src/Player/player.cpp
+    src/Debugger/debugger.cpp
     vendor/glad/src/glad.c
 )
 

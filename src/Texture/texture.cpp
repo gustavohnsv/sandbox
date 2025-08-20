@@ -1,6 +1,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "../Other/stb_image.h"
-#include "main.h"
+#include "texture.h"
 
 Texture::Texture(const char* texture) {
     glGenTextures(1, &this->ID);

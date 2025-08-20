@@ -1,4 +1,4 @@
-#include "main.h"
+#include "debugger.h"
 
 // Essa função teve fortes influências de IA
 // mesmo assim foi desafiador implementar a lógica de visualização de chunks igual do Minecraft

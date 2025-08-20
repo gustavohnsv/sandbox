@@ -1,4 +1,4 @@
-#include "main.h"
+#include "world.h"
 
 World::World() {
     // 1. DEFINIÇÃO DAS VARIÁVEIS
@@ -326,7 +326,7 @@ void World::generateChunkData(Chunk &chunk, Vec3i chunkPos) {
             float worldX = (chunkPos.x * CHUNK_WIDTH) + bx;
             float worldZ = (chunkPos.z * CHUNK_DEPTH) + bz;
             int SEA_HEIGHT = CHUNK_HEIGHT / 4;
-            noise.SetFrequency(0.001f); // 0.0005 planice <=> 0.05 montanha
+            noise.SetFrequency(0.005f); // 0.0005 planice <=> 0.05 montanha
             float terrainNoise = noise.GetNoise(worldX, worldZ);
             int terrainHeight = (int)(CHUNK_HEIGHT/2) * (1.0f + terrainNoise);
             noise.SetFrequency(0.01f);
@@ -375,11 +375,11 @@ void World::generateChunkData(Chunk &chunk, Vec3i chunkPos) {
                             // Pedra
                             else { chunk.setBlock(bx, by, bz, 3, false); }
                         } else {
-                            if (by <= waterLevel) {
-                                chunk.setBlock(bx, by, bz, 5, false); // Água
-                            } else {
+                            //if (by <= waterLevel) {
+                            //    chunk.setBlock(bx, by, bz, 5, false); // Água
+                            //} else {
                                 chunk.setBlock(bx, by, bz, 0, false);
-                            }
+                            //}
                         }
                     }
                 }
