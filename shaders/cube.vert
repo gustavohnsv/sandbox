@@ -3,6 +3,7 @@ layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
 layout (location = 2) in float aType;
 layout (location = 3) in vec2 aTexCoord;
+layout (location = 4) in float aSkylight;
 
 uniform mat4 projection;
 uniform mat4 model;
@@ -12,6 +13,7 @@ out vec3 Normal;
 out vec3 FragPos;
 out float BlockType;
 out vec2 TexCoord;
+out float Skylight;
 
 void main()
 {
@@ -20,4 +22,5 @@ void main()
     FragPos = vec3(model * vec4(aPos, 1.0));
     BlockType = aType;
     TexCoord = aTexCoord;
+    Skylight = aSkylight;
 }

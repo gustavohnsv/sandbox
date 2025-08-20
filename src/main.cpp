@@ -125,6 +125,8 @@ int main() {
     // Ativação do modo de teste de profundidade
     // =============================================================================
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // ============================================================================= 
     // Inicialização e configuração do ImGui (Janela para depuração)
@@ -234,6 +236,30 @@ int main() {
     float angle = 0.0f;
 
     // ============================================================================= 
+    // Configuração da iluminação e textura dos objetos
+    // =============================================================================
+    shaderProgram.use();
+    // glm::vec3 lightPosition(camera.getPos());
+    // shaderProgram.setVec3("lightPos", lightPosition.x, lightPosition.y+1, lightPosition.z);
+    shaderProgram.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+    // angle += 0.01f;
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, grassTexture.ID);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, dirtTexture.ID);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, stoneTexture.ID);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, rootstoneTexture.ID);
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, waterTexture.ID);
+    shaderProgram.setInt("blockTextures[0]", 0);
+    shaderProgram.setInt("blockTextures[1]", 1);
+    shaderProgram.setInt("blockTextures[2]", 2);
+    shaderProgram.setInt("blockTextures[3]", 3);
+    shaderProgram.setInt("blockTextures[4]", 4);
+
+    // ============================================================================= 
     // Inicialização do laço principal do programa
     // =============================================================================
     while (!glfwWindowShouldClose(window)) {
@@ -269,6 +295,16 @@ int main() {
                     ImGui::Text("Chunk modificada: Verdadeiro");
                 } else {
                     ImGui::Text("Chunk modificada: Falso");
+                }
+                bool skylightState = world.isExposedToSky(
+                    static_cast<int>(floor(camera.getPos().x)), 
+                    static_cast<int>(floor(camera.getPos().y)), 
+                    static_cast<int>(floor(camera.getPos().z))
+                );
+                if (skylightState) {
+                    ImGui::Text("Atualmente: Exposto para o céu");
+                } else {
+                    ImGui::Text("Atualmente: Coberto para o céu");
                 }
             }
             ImGui::Text(debug.seedInfo.c_str());
@@ -331,31 +367,6 @@ int main() {
         // =============================================================================
         glClearColor(0.53f, 0.81f, 0.92f, 1.0f); 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-
-        // ============================================================================= 
-        // Configuração da iluminação e textura dos objetos
-        // =============================================================================
-        shaderProgram.use();
-        glm::vec3 lightPosition(camera.getPos());
-        shaderProgram.setVec3("lightPos", lightPosition.x, lightPosition.y+1, lightPosition.z);
-        shaderProgram.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-        angle += 0.01f;
-        shaderProgram.setInt("blockTextures[0]", 0);
-        shaderProgram.setInt("blockTextures[1]", 1);
-        shaderProgram.setInt("blockTextures[2]", 2);
-        shaderProgram.setInt("blockTextures[3]", 3);
-        shaderProgram.setInt("blockTextures[4]", 4);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, grassTexture.ID);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, dirtTexture.ID);
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, stoneTexture.ID);
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, rootstoneTexture.ID);
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, waterTexture.ID);
 
         // ============================================================================= 
         // Atualização das coordenadas no mundo para carregamento de chunks

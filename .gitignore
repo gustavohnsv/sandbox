@@ -19,6 +19,7 @@ build/
 
 # Arquivos de log ou de output do seu programa
 *.log
+log.txt
 
 # Executável final (se por acaso ele for gerado fora da pasta 'build')
 sandbox

@@ -190,8 +190,18 @@ void World::addBlock(const Vec3i &pos) {
         int localY = pos.y - chunkPos.y * CHUNK_HEIGHT;
         int localZ = pos.z - chunkPos.z * CHUNK_DEPTH;
         chunk->setBlock(localX, localY, localZ, 1, true);
-        chunk->buildMesh();
-    }
+        chunk->updateHeightMap();
+        chunk->buildMesh((*this), chunkPos);
+        chunk->buildWaterMesh((*this), chunkPos);
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                Vec3i neighborPos = {chunkPos.x + dx, chunkPos.y, chunkPos.z + dz};
+                if (getChunk(neighborPos.x, neighborPos.y, neighborPos.z)) {
+                    chunksNeedingLighting.insert(neighborPos);
+                }
+            }
+        }
+    }   
 }
 
 void World::removeBlock(const Vec3i &pos) {
@@ -205,7 +215,17 @@ void World::removeBlock(const Vec3i &pos) {
         int localY = pos.y - chunkPos.y * CHUNK_HEIGHT;
         int localZ = pos.z - chunkPos.z * CHUNK_DEPTH;
         chunk->setBlock(localX, localY, localZ, 0, true);
-        chunk->buildMesh();
+        chunk->updateHeightMap();
+        chunk->buildMesh((*this), chunkPos);
+        chunk->buildWaterMesh((*this), chunkPos);
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                Vec3i neighborPos = {chunkPos.x + dx, chunkPos.y, chunkPos.z + dz};
+                if (getChunk(neighborPos.x, neighborPos.y, neighborPos.z)) {
+                    chunksNeedingLighting.insert(neighborPos);
+                }
+            }
+        }
     }
 }
 
@@ -216,7 +236,9 @@ void World::update(const glm::vec3 &pos) {
     int playerChunkX = static_cast<int>(floor(pos.x / CHUNK_WIDTH));
     int playerChunkZ = static_cast<int>(floor(pos.z / CHUNK_DEPTH));
 
-    // Loop através da área de renderização ao redor do jogador
+    // FASE 1: Carregamento/Geração de chunks
+    std::vector<Vec3i> newlyCreatedChunks;
+    
     for (int i = playerChunkX - renderDistance; i <= playerChunkX + renderDistance; i++) {
         for (int j = playerChunkZ - renderDistance; j <= playerChunkZ + renderDistance; j++) {
             Vec3i chunkPos = {i, 0, j};
@@ -226,30 +248,35 @@ void World::update(const glm::vec3 &pos) {
                 std::string filename = "chunk_" + std::to_string(i) + "_" + std::to_string(j) + ".chunk";
                 std::filesystem::path filepath = saveDir/filename;
                 Chunk newChunk;
-                if (!newChunk.loadFile(filepath.string())) {
+                if (!newChunk.loadFile(filepath.string(), (*this), chunkPos)) {
                     generateChunkData(newChunk, chunkPos);
+                    newlyCreatedChunks.push_back(chunkPos); // Marca como recém-criado
                 }
                 world[chunkPos] = std::move(newChunk);
             }
         }
     }
 
-    std::vector<Vec3i> chunksToUnload; // Lista de chunks para remover
+    // FASE 2: Atualização de iluminação para chunks recém-criados
+    for (const auto& chunkPos : newlyCreatedChunks) {
+        chunksNeedingLighting.insert(chunkPos);
+    }
+    
+    // Atualiza iluminação dos chunks pendentes
+    updateChunkLighting();
 
-    // Itera sobre todos os chunks que estão atualmente carregados no mapa
+    // FASE 3: Descarregamento de chunks distantes
+    std::vector<Vec3i> chunksToUnload;
+
     for (auto const& [pos, chunk] : world) {
-        // Calcula a distância do chunk até o jogador
         int dist_x = abs(pos.x - playerChunkX);
         int dist_z = abs(pos.z - playerChunkZ);
 
-        // Se o chunk está além da distância de renderização, marque-o para remoção
         if (dist_x > renderDistance || dist_z > renderDistance) {
             chunksToUnload.push_back(pos);
         }
     }
 
-    // Remove os chunks marcados do mapa
-    // Isso libera a memória que eles estavam usando
     for (const auto& pos : chunksToUnload) {
         Chunk &chunk = world.at(pos);
         if (chunk.isModified()) {
@@ -257,7 +284,37 @@ void World::update(const glm::vec3 &pos) {
             std::filesystem::path filepath = saveDir/filename;
             chunk.saveFile(filepath.string());
         }
+        // Remove da lista de chunks pendentes de iluminação também
+        chunksNeedingLighting.erase(pos);
         world.erase(pos);
+    }
+}
+
+void World::updateChunkLighting() {
+    std::vector<Vec3i> completedChunks;
+    
+    for (const auto& chunkPos : chunksNeedingLighting) {
+        auto it = world.find(chunkPos);
+        if (it != world.end()) {
+            // Verifica se os chunks vizinhos necessários existem
+            bool canCalculateLighting = true;
+            
+            // Para um cálculo básico de skylight, precisamos principalmente do próprio chunk
+            // Mas para iluminação mais avançada, você pode verificar vizinhos aqui
+            
+            if (canCalculateLighting) {
+                Chunk& chunk = it->second;
+                chunk.updateHeightMap();
+                chunk.buildMesh((*this), chunkPos);
+                chunk.buildWaterMesh((*this), chunkPos);
+                completedChunks.push_back(chunkPos);
+            }
+        }
+    }
+    
+    // Remove chunks que tiveram a iluminação calculada
+    for (const auto& pos : completedChunks) {
+        chunksNeedingLighting.erase(pos);
     }
 }
 
@@ -268,9 +325,34 @@ void World::generateChunkData(Chunk &chunk, Vec3i chunkPos) {
 
             float worldX = (chunkPos.x * CHUNK_WIDTH) + bx;
             float worldZ = (chunkPos.z * CHUNK_DEPTH) + bz;
-            noise.SetFrequency(0.005f); // 0.0005 planice <=> 0.05 montanha
+            int SEA_HEIGHT = CHUNK_HEIGHT / 4;
+            noise.SetFrequency(0.001f); // 0.0005 planice <=> 0.05 montanha
             float terrainNoise = noise.GetNoise(worldX, worldZ);
             int terrainHeight = (int)(CHUNK_HEIGHT/2) * (1.0f + terrainNoise);
+            noise.SetFrequency(0.01f);
+            float waterNoise = noise.GetNoise(worldX, worldZ);
+            int waterHeight = (int)(CHUNK_HEIGHT*0.3f);
+
+            // ÁGUA - Nível base global
+            int baseSeaLevel = CHUNK_HEIGHT / 3; // Nível fixo global
+            
+            // Lagos elevados apenas em áreas muito específicas
+            noise.SetFrequency(0.005f); // Frequência mais baixa = lagos maiores
+            float lakeNoise = noise.GetNoise(worldX, worldZ);
+            
+            int waterLevel = baseSeaLevel;
+            
+            // Apenas lagos muito grandes e suaves
+            if (lakeNoise > 0.6f) { // Threshold alto = menos lagos
+                int lakeHeight = (int)(10 * (lakeNoise - 0.6f)); // Lagos até 4 blocos mais altos
+                waterLevel = baseSeaLevel + lakeHeight;
+            }
+            
+            // Garantir que não vai muito alto
+            waterLevel = std::min(waterLevel, CHUNK_HEIGHT - 20);
+            
+            // Garantir limites mínimos
+            waterHeight = std::max(5, std::min(waterHeight, CHUNK_HEIGHT - 10));
 
             for (int by = 0; by <  CHUNK_HEIGHT; by++) {
                 if (by == 0) {
@@ -280,10 +362,12 @@ void World::generateChunkData(Chunk &chunk, Vec3i chunkPos) {
                     noise.SetFrequency(0.05);
                     float caveNoise = noise.GetNoise(worldX, worldY, worldZ);
                     if (caveNoise > 0.1f && by <= (int)terrainHeight*0.8) {
-                        chunk.setBlock(bx, by, bz, 0, false); // Ar         
-                    }
-                    else {
-                        if (by < terrainHeight) {
+                        if (by <=  baseSeaLevel * 0.7f) {
+                            chunk.setBlock(bx, by, bz, 5, false); // Água    
+                        } else {
+                            chunk.setBlock(bx, by, bz, 0, false); // Ar         
+                        }
+                    } else if (by < terrainHeight) {
                             // Grama
                             if (terrainHeight - by < 3) { chunk.setBlock(bx, by, bz, 1, false); } 
                             // Terra
@@ -291,8 +375,8 @@ void World::generateChunkData(Chunk &chunk, Vec3i chunkPos) {
                             // Pedra
                             else { chunk.setBlock(bx, by, bz, 3, false); }
                         } else {
-                            if (by <= 42 && by >= 32) {
-                                chunk.setBlock(bx, by, bz, 5, false);
+                            if (by <= waterLevel) {
+                                chunk.setBlock(bx, by, bz, 5, false); // Água
                             } else {
                                 chunk.setBlock(bx, by, bz, 0, false);
                             }
@@ -301,10 +385,8 @@ void World::generateChunkData(Chunk &chunk, Vec3i chunkPos) {
                 }
             }
         }
-    }
-
     // 3. CONSTRUÇÃO DA MALHA OTIMIZADA
-    chunk.buildMesh();
+    chunk.updateHeightMap();
 }
 
 void World::draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &view, const glm::vec3 &cameraPos) {
@@ -313,12 +395,11 @@ void World::draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &v
     shader.setMat4("view", view);
     shader.setVec3("cameraPos", cameraPos.x, cameraPos.y, cameraPos.z);
     
-    // Mesma lógica do update: calcula a área de renderização
     int renderDistance = 5;
     int playerChunkX = static_cast<int>(floor(cameraPos.x / CHUNK_WIDTH));
     int playerChunkZ = static_cast<int>(floor(cameraPos.z / CHUNK_DEPTH));
 
-    // Itera apenas sobre os chunks que devem estar visíveis
+    glDepthMask(GL_TRUE);
     for (int i = playerChunkX - renderDistance; i <= playerChunkX + renderDistance; i++) {
         for (int j = playerChunkZ - renderDistance; j <= playerChunkZ + renderDistance; j++) {
             Vec3i pos = {i, 0, j};
@@ -335,6 +416,26 @@ void World::draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &v
             }
         }
     }
+
+    glDepthMask(GL_FALSE);
+    for (int i = playerChunkX - renderDistance; i <= playerChunkX + renderDistance; i++) {
+        for (int j = playerChunkZ - renderDistance; j <= playerChunkZ + renderDistance; j++) {
+            Vec3i pos = {i, 0, j};
+            
+            // Tenta encontrar o chunk no mapa
+            auto it = world.find(pos);
+            if (it != world.end()) {
+                // Se o chunk existe, desenha ele
+                Chunk& chunk = it->second;
+                glm::mat4 model = glm::mat4(1.0f);
+                model = glm::translate(model, glm::vec3(pos.x * CHUNK_WIDTH, pos.y * CHUNK_HEIGHT, pos.z * CHUNK_DEPTH));
+                shader.setMat4("model", model);
+                chunk.drawWater();
+            }
+        }
+    }
+
+    glDepthMask(GL_TRUE);
 }
 
 void World::highlight(Shader &shader, const Vec3i &pos, const glm::mat4 &projection, const glm::mat4 &view) {
@@ -349,6 +450,23 @@ void World::highlight(Shader &shader, const Vec3i &pos, const glm::mat4 &project
     shader.setMat4("transform", transform);
     glDrawArrays(GL_LINES, 0, 24);
     glBindVertexArray(0);
+}
+
+bool World::isExposedToSky(int x, int y, int z) const {
+    int chunkX = static_cast<int>(floor((float)x/CHUNK_WIDTH));
+    int chunkY = static_cast<int>(floor((float)y/CHUNK_HEIGHT));
+    int chunkZ = static_cast<int>(floor((float)z/CHUNK_DEPTH));
+    Vec3i chunkPos = { chunkX, chunkY, chunkZ };
+    auto it = world.find(chunkPos);
+    if (it == world.end()) {
+        return false;
+    }
+    int localX = x - chunkPos.x * CHUNK_WIDTH;
+    int localY = y - chunkPos.y * CHUNK_HEIGHT;
+    int localZ = z - chunkPos.z * CHUNK_DEPTH;
+    
+    int heightValue = it->second.getHeightValue(localX, localZ);
+    return heightValue == -1 || heightValue <= localY;
 }
 
 bool World::hasBlockAt(const Vec3i &pos) const {

@@ -34,6 +34,7 @@ class World {
         void generateChunkData(Chunk &chunk, Vec3i Chunkpos);
         void draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &view, const glm::vec3 &cameraPos);
         void highlight(Shader &shader, const Vec3i &pos, const glm::mat4 &projection, const glm::mat4 &view);
+        bool isExposedToSky(int x, int y, int z) const;
         bool hasBlockAt(const Vec3i &pos) const;
     
     private:
@@ -41,7 +42,9 @@ class World {
         unsigned int VAO, VBO;
         unsigned int border_VAO, border_VBO;
         std::map<Vec3i, Chunk> world;
+        std::set<Vec3i> chunksNeedingLighting;
         FastNoiseLite noise;
+        void updateChunkLighting();
         void check();
 };
 

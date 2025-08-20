@@ -22,6 +22,7 @@
 #include <atomic>
 #include <vector>
 #include <map>
+#include <set>
 
 // --- Bibliotecas Padrão do C ---
 #include <ctime> // Para a função time()
