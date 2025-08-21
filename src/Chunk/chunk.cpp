@@ -104,6 +104,7 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
                 float skylight_top = world.isExposedToSky(globalX, globalY, globalZ) ? 0.5: baseLight;
                 float skylight_other = baseLight;
                 int blockAbove = world.getBlockType(Vec3i{globalX, globalY + 1, globalZ});
+                if (blockAbove == -1) blockAbove = 0;
                 if (blockAbove == 0 || blockAbove == 5) {
                     mesh.insert(mesh.end(), {
                         x - 0.5f, y + 0.5f, z - 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,        0.0f, 1.0f,     skylight_top,
@@ -115,6 +116,7 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
                     });
                 }
                 int blockBelow = world.getBlockType(Vec3i{globalX, globalY - 1, globalZ});
+                if (blockBelow == -1) blockBelow = 0;
                 if (blockBelow == 0 || blockBelow == 5) {
                     mesh.insert(mesh.end(), {
                         x - 0.5f, y - 0.5f, z - 0.5f,   0.0f,-1.0f, 0.0f,   (float)type,        0.0f, 1.0f,     skylight_other,
@@ -128,6 +130,7 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
                 
                 // FACE DIREITA (+X) - verificar bloco à direita
                 int blockRight = world.getBlockType(Vec3i{globalX + 1, globalY, globalZ});
+                if (blockRight == -1) blockRight = 0;
                 if (blockRight == 0 || blockRight == 5) {
                     mesh.insert(mesh.end(), {
                         x + 0.5f, y - 0.5f, z - 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,        0.0f, 1.0f,     skylight_other,
@@ -141,6 +144,7 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
                 
                 // FACE ESQUERDA (-X) - verificar bloco à esquerda
                 int blockLeft = world.getBlockType(Vec3i{globalX - 1, globalY, globalZ});
+                if (blockLeft == -1) blockLeft = 0;
                 if (blockLeft == 0 || blockLeft == 5) {
                     mesh.insert(mesh.end(), {
                         x - 0.5f, y - 0.5f, z - 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,        0.0f, 1.0f,     skylight_other,
@@ -154,6 +158,7 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
                 
                 // FACE FRENTE (+Z) - verificar bloco na frente
                 int blockFront = world.getBlockType(Vec3i{globalX, globalY, globalZ + 1});
+                if (blockFront == -1) blockFront = 0;
                 if (blockFront == 0 || blockFront == 5) {
                     mesh.insert(mesh.end(), {
                         x - 0.5f, y - 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,        0.0f, 1.0f,     skylight_other,
@@ -167,6 +172,7 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
                 
                 // FACE TRÁS (-Z) - verificar bloco atrás
                 int blockBack = world.getBlockType(Vec3i{globalX, globalY, globalZ - 1});
+                if (blockBack == -1) blockBack = 0;
                 if (blockBack == 0 || blockBack == 5) {
                     mesh.insert(mesh.end(), {
                         x - 0.5f, y - 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   (float)type,        0.0f, 1.0f,     skylight_other,
@@ -243,7 +249,7 @@ void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
                 }
                 
                 // FACE ESQUERDA (-X) - verificar bloco à esquerda
-                int blockLeft = world.getBlockType(Vec3i{globalX - 1, globalY, globalZ});
+                int blockLeft = world.getBlockType(Vec3i{globalX - 1, globalY, globalZ}); 
                 if (blockLeft == 0) {
                     mesh.insert(mesh.end(), {
                         x - 0.5f, y - 0.5f, z - 0.5f,  -1.0f, 0.0f, 0.0f,   5.0f,        0.0f, 1.0f,     skylight_other,

@@ -16,6 +16,10 @@ World::World() {
         }
     }
     std::filesystem::create_directories(saveDir);
+    Block blockDictionary[] = {{"Ar", 0}, {"Grama", 1}, {"Terra", 2}, {"Pedra", 3}, {"Rocha matriz", 4}, {"Água", 5}};
+    for (auto it: blockDictionary) {
+        blockSummary[it.type] = std::move(it.name);
+    }
 
     // 2. CRIANDO OS OBJETOS PARA VERTICES E ARESTAS
     float vData[] = {
@@ -173,6 +177,14 @@ int World::getBlockType(const Vec3i &pos) const {
         return chunk->getBlock(localX, localY, localZ);
     }
     return -1;
+}
+
+std::string World::getBlockName(int type) const {
+    auto it = blockSummary.find(type);
+    if (it != blockSummary.end()) {
+        return it->second;
+    }
+    return "N/A";
 }
 
 int World::getSeed() const {
@@ -362,11 +374,11 @@ void World::generateChunkData(Chunk &chunk, Vec3i chunkPos) {
                     noise.SetFrequency(0.05);
                     float caveNoise = noise.GetNoise(worldX, worldY, worldZ);
                     if (caveNoise > 0.1f && by <= (int)terrainHeight*0.8) {
-                        if (by <=  baseSeaLevel * 0.7f) {
-                            chunk.setBlock(bx, by, bz, 5, false); // Água    
-                        } else {
+                        // if (by <=  baseSeaLevel * 0.7f) {
+                        //     chunk.setBlock(bx, by, bz, 5, false); // Água    
+                        // } else {
                             chunk.setBlock(bx, by, bz, 0, false); // Ar         
-                        }
+                        // }
                     } else if (by < terrainHeight) {
                             // Grama
                             if (terrainHeight - by < 3) { chunk.setBlock(bx, by, bz, 1, false); } 
@@ -375,11 +387,11 @@ void World::generateChunkData(Chunk &chunk, Vec3i chunkPos) {
                             // Pedra
                             else { chunk.setBlock(bx, by, bz, 3, false); }
                         } else {
-                            //if (by <= waterLevel) {
-                            //    chunk.setBlock(bx, by, bz, 5, false); // Água
-                            //} else {
+                            if (by <= waterLevel * 0.5) {
+                                chunk.setBlock(bx, by, bz, 5, false); // Água
+                            } else {
                                 chunk.setBlock(bx, by, bz, 0, false);
-                            //}
+                            }
                         }
                     }
                 }
@@ -387,6 +399,8 @@ void World::generateChunkData(Chunk &chunk, Vec3i chunkPos) {
         }
     // 3. CONSTRUÇÃO DA MALHA OTIMIZADA
     chunk.updateHeightMap();
+    // chunk.buildMesh((*this), chunkPos);
+    // chunk.buildWaterMesh((*this), chunkPos);
 }
 
 void World::draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &view, const glm::vec3 &cameraPos) {

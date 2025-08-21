@@ -26,6 +26,7 @@ class World {
         const Chunk* getChunk(int x, int y, int z) const;
         const std::map<Vec3i, Chunk> getChunks() const;
         int getBlockType(const Vec3i &pos) const;
+        std::string getBlockName(int type) const;
         int getSeed() const;
         void addBlock(const Vec3i &pos);
         void removeBlock(const Vec3i &pos);
@@ -37,6 +38,7 @@ class World {
         bool hasBlockAt(const Vec3i &pos) const;
     
     private:
+        std::map<int, std::string> blockSummary;
         std::filesystem::path saveDir;
         unsigned int VAO, VBO;
         unsigned int border_VAO, border_VBO;

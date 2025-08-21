@@ -111,14 +111,11 @@ void Debugger::updateBlockInfo(const World &world, const Vec3i pos) {
         ss1 << "Posição atual do bloco: [" << pos.x << "," << pos.y << "," << pos.z << "]";
         blockPosInfo = ss1.str();
     }
-    int blockType = world.getBlockType(pos);
-    if (blockType == -1) {
-        ss2 << "Tipo atual do bloco: [N/A]";
-        blockTypeInfo = ss2.str();
-    } else {
-        ss2 << "Tipo atual do bloco: [" << blockType << "]";
-        blockTypeInfo = ss2.str();
-    }
+    int type = world.getBlockType(pos);
+    if (type == -1) type = 0;
+    std::string blockName = world.getBlockName(type);
+    ss2 << "Tipo atual do bloco: [" << blockName << "]";
+    blockTypeInfo = ss2.str();
 }
 
 void Debugger::updateCamInfo(const Camera &camera) {

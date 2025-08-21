@@ -48,4 +48,13 @@ struct Vec2i {
     }
 };
 
+struct Block {
+    const char* name;
+    int type;
+
+    bool operator<(const Block &other) const {
+        return type < other.type;
+    }
+};
+
 #endif // COMMON_H
