@@ -30,7 +30,7 @@ class World {
         int getSeed() const;
         void addBlock(const Vec3i &pos);
         void removeBlock(const Vec3i &pos);
-        void update(const glm::vec3 &pos);
+        void update(const glm::vec3 &pos, const glm::mat4 &view, const glm::mat4 &proj);
         void generateChunkData(Chunk &chunk, Vec3i Chunkpos);
         void draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &view, const glm::vec3 &cameraPos);
         void highlight(Shader &shader, const Vec3i &pos, const glm::mat4 &projection, const glm::mat4 &view);

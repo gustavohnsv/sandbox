@@ -241,7 +241,7 @@ void World::removeBlock(const Vec3i &pos) {
     }
 }
 
-void World::update(const glm::vec3 &pos) {
+void World::update(const glm::vec3 &pos, const glm::mat4 &view, const glm::mat4 &proj) {
     int renderDistance = 5; // Isso cria uma área de (5*2+1) x (5*2+1) = 11x11 chunks
 
     // Encontra em qual chunk o jogador está
@@ -250,21 +250,30 @@ void World::update(const glm::vec3 &pos) {
 
     // FASE 1: Carregamento/Geração de chunks
     std::vector<Vec3i> newlyCreatedChunks;
+
+    Frustum frustum;
+    frustum.update(view, proj);
     
     for (int i = playerChunkX - renderDistance; i <= playerChunkX + renderDistance; i++) {
         for (int j = playerChunkZ - renderDistance; j <= playerChunkZ + renderDistance; j++) {
             Vec3i chunkPos = {i, 0, j};
 
-            // Verifica se o chunk já existe no nosso mapa
-            if (world.find(chunkPos) == world.end()) {
-                std::string filename = "chunk_" + std::to_string(i) + "_" + std::to_string(j) + ".chunk";
-                std::filesystem::path filepath = saveDir/filename;
-                Chunk newChunk;
-                if (!newChunk.loadFile(filepath.string(), (*this), chunkPos)) {
-                    generateChunkData(newChunk, chunkPos);
-                    newlyCreatedChunks.push_back(chunkPos); // Marca como recém-criado
+            glm::vec3 minPos = {chunkPos.x * CHUNK_WIDTH, chunkPos.y * CHUNK_HEIGHT, chunkPos.z * CHUNK_DEPTH};
+            glm::vec3 maxPos = {(chunkPos.x * CHUNK_WIDTH) + CHUNK_WIDTH, (chunkPos.y * CHUNK_HEIGHT) + CHUNK_HEIGHT, (chunkPos.z * CHUNK_DEPTH) + CHUNK_DEPTH};
+            AABB chunkAABB = {minPos, maxPos};
+            if (frustum.isBoxInFrustum(chunkAABB)) {
+                std::cout << "Chunk dentro do Frustum: ["<< chunkPos.x << "," << chunkPos.z << "]!" << std::endl;
+                // Verifica se o chunk já existe no nosso mapa
+                if (world.find(chunkPos) == world.end()) {
+                    std::string filename = "chunk_" + std::to_string(i) + "_" + std::to_string(j) + ".chunk";
+                    std::filesystem::path filepath = saveDir/filename;
+                    Chunk newChunk;
+                    if (!newChunk.loadFile(filepath.string(), (*this), chunkPos)) {
+                        generateChunkData(newChunk, chunkPos);
+                        newlyCreatedChunks.push_back(chunkPos); // Marca como recém-criado
+                    }
+                    world[chunkPos] = std::move(newChunk);
                 }
-                world[chunkPos] = std::move(newChunk);
             }
         }
     }
@@ -408,10 +417,14 @@ void World::draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &v
     shader.setMat4("projection", projection);
     shader.setMat4("view", view);
     shader.setVec3("cameraPos", cameraPos.x, cameraPos.y, cameraPos.z);
+
+    Frustum frustum;
+    frustum.update(view, projection);
     
     int renderDistance = 5;
     int playerChunkX = static_cast<int>(floor(cameraPos.x / CHUNK_WIDTH));
     int playerChunkZ = static_cast<int>(floor(cameraPos.z / CHUNK_DEPTH));
+
 
     glDepthMask(GL_TRUE);
     for (int i = playerChunkX - renderDistance; i <= playerChunkX + renderDistance; i++) {
@@ -422,11 +435,16 @@ void World::draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &v
             auto it = world.find(pos);
             if (it != world.end()) {
                 // Se o chunk existe, desenha ele
-                Chunk& chunk = it->second;
-                glm::mat4 model = glm::mat4(1.0f);
-                model = glm::translate(model, glm::vec3(pos.x * CHUNK_WIDTH, pos.y * CHUNK_HEIGHT, pos.z * CHUNK_DEPTH));
-                shader.setMat4("model", model);
-                chunk.draw();
+                glm::vec3 minPos = {pos.x * CHUNK_WIDTH, pos.y * CHUNK_HEIGHT, pos.z * CHUNK_DEPTH};
+                glm::vec3 maxPos = {(pos.x * CHUNK_WIDTH) + CHUNK_WIDTH, (pos.y * CHUNK_HEIGHT) + CHUNK_HEIGHT, (pos.z * CHUNK_DEPTH) + CHUNK_DEPTH};
+                AABB chunkAABB = {minPos, maxPos};
+                if (frustum.isBoxInFrustum(chunkAABB)) {
+                    Chunk& chunk = it->second;
+                    glm::mat4 model = glm::mat4(1.0f);
+                    model = glm::translate(model, glm::vec3(pos.x * CHUNK_WIDTH, pos.y * CHUNK_HEIGHT, pos.z * CHUNK_DEPTH));
+                    shader.setMat4("model", model);
+                    chunk.draw();
+                }
             }
         }
     }
@@ -440,11 +458,16 @@ void World::draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &v
             auto it = world.find(pos);
             if (it != world.end()) {
                 // Se o chunk existe, desenha ele
-                Chunk& chunk = it->second;
-                glm::mat4 model = glm::mat4(1.0f);
-                model = glm::translate(model, glm::vec3(pos.x * CHUNK_WIDTH, pos.y * CHUNK_HEIGHT, pos.z * CHUNK_DEPTH));
-                shader.setMat4("model", model);
-                chunk.drawWater();
+                glm::vec3 minPos = {pos.x * CHUNK_WIDTH, pos.y * CHUNK_HEIGHT, pos.z * CHUNK_DEPTH};
+                glm::vec3 maxPos = {(pos.x * CHUNK_WIDTH) + CHUNK_WIDTH, (pos.y * CHUNK_HEIGHT) + CHUNK_HEIGHT, (pos.z * CHUNK_DEPTH) + CHUNK_DEPTH};
+                AABB chunkAABB = {minPos, maxPos};
+                if (frustum.isBoxInFrustum(chunkAABB)) {
+                    Chunk& chunk = it->second;
+                    glm::mat4 model = glm::mat4(1.0f);
+                    model = glm::translate(model, glm::vec3(pos.x * CHUNK_WIDTH, pos.y * CHUNK_HEIGHT, pos.z * CHUNK_DEPTH));
+                    shader.setMat4("model", model);
+                    chunk.drawWater();
+                }
             }
         }
     }

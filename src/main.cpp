@@ -148,8 +148,10 @@ int main() {
     // ============================================================================= 
     // Inicialização do ponto de surgimento do mundo
     // =============================================================================
-    glm::vec3 spawnPoint = glm::vec3(0.5f, CHUNK_HEIGHT, 0.5f);
-    world.update(spawnPoint);
+    glm::vec3 spawnPoint = glm::vec3(0.5f, 0.5f, 0.5f);
+    glm::mat4 initial_view = glm::lookAt(spawnPoint, spawnPoint + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 initial_proj = glm::perspective(glm::radians(ZOOM), 800.0f / 600.0f, 0.01f, 100.0f); 
+    world.update(spawnPoint, initial_view, initial_proj);
 
     // ============================================================================= 
     // Inicialização e posicionamento da câmera
@@ -370,7 +372,7 @@ int main() {
         // ============================================================================= 
         // Atualização das coordenadas no mundo para carregamento de chunks
         // =============================================================================
-        world.update(camera.getPos());
+        world.update(camera.getPos(), camera.getView(), camera.getProj());
 
         // ============================================================================= 
         // Renderização dos objetos, foco do objeto e renderização das bordas do chunk
