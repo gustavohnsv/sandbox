@@ -1,6 +1,69 @@
 #include "world.h"
 
+std::vector<Biome> biomes = {
+    {
+        "Planície", ID_GRAMA, ID_TERRA, 
+        32.0f, 1.0f, 0.01f, 
+        0.2f, 0.3f,
+        true,
+    },
+    {
+        "Montanhas", ID_PEDRA, ID_PEDRA, 
+        60.0f, 30.0f, 0.03f, 
+        0.4f, 0.0f,
+        false,
+    },
+    {
+        "Deserto", ID_AREIA, ID_ARENITO, 
+        34.0f, 3.0f, 0.01f, 
+        0.8f, -0.7f,
+        false,
+    },
+    {
+        "Praia", ID_AREIA, ID_ARENITO,
+        24.0f, 2.0f, 0.01f,
+        0.8f, 0.5f,
+        true,
+    },
+    {
+        "Vales", ID_GRAMA, ID_TERRA,
+        20.0f, 50.0f, 0.04f,
+        0.4f, 0.0f,
+        false,
+    },
+};
+
+std::map<int, Block> blockDatabase;
+
+void initializeBlockDatabase() {
+    // Formato: {nome, tipo, {col, lin}_topo, {col, lin}_lado, {col, lin}_fundo}
+
+    blockDatabase[ID_AR] = {"Ar", ID_AR, {-1, -1}, {-1, -1}, {-1, -1}};
+    
+    // Bloco de Grama: topo verde, lado com terra, fundo de terra
+    blockDatabase[ID_GRAMA] = {"Grama", ID_GRAMA, {3, 15}, {3, 29}, {3, 30}};
+
+    // Bloco de Terra: mesma textura em todos os lados
+    blockDatabase[ID_TERRA] = {"Terra", ID_TERRA, {3, 30}, {3, 30}, {3, 30}};
+
+    // Bloco de Pedra: mesma textura em todos os lados
+    blockDatabase[ID_PEDRA] = {"Pedra", ID_PEDRA, {0, 5}, {0, 5}, {0, 5}};
+
+    // Rocha Matriz (Bedrock): uma pedra mais escura e resistente
+    blockDatabase[ID_ROCHA_MATRIZ] = {"Rocha matriz", ID_ROCHA_MATRIZ, {2, 5}, {2, 5}, {2, 5}};
+    
+    // Água: uma textura de água animada ou estática
+    blockDatabase[ID_AGUA] = {"Água", ID_AGUA, {0, 8}, {1, 8}, {1, 8}};
+
+    // Areia: para praias e desertos
+    blockDatabase[ID_AREIA] = {"Areia", ID_AREIA, {1, 6}, {1, 6}, {1, 6}};
+    
+    // Arenito: bloco subsuperfície do deserto
+    blockDatabase[ID_ARENITO] = {"Arenito", ID_ARENITO, {9, 12}, {9, 12}, {9, 12}};
+}
+
 World::World() {
+    initializeBlockDatabase();
     // 1. DEFINIÇÃO DAS VARIÁVEIS
     srand(time(NULL));
     this->seed = 1001 * rand();
@@ -160,7 +223,7 @@ const Chunk* World::getChunk(int x, int y, int z) const{
     return nullptr;
 }
 
-const std::map<Vec3i, Chunk> World::getChunks() const{
+const std::unordered_map<Vec3i, Chunk, Vec3iHasher> World::getChunks() const{
     return world;
 }
 
@@ -180,11 +243,17 @@ int World::getBlockType(const Vec3i &pos) const {
 }
 
 std::string World::getBlockName(int type) const {
-    auto it = blockSummary.find(type);
-    if (it != blockSummary.end()) {
-        return it->second;
+    if (type >= 0 && type < blockDatabase.size()) {
+        return blockDatabase[type].name;
     }
-    return "N/A";
+    return blockDatabase[ID_AR].name;
+}
+
+Block World::getBlockInfo(int type) const {
+    if (type >= 0 && type < blockDatabase.size()) {
+        return blockDatabase[type];
+    }
+    return blockDatabase[ID_AR];
 }
 
 int World::getSeed() const {
@@ -242,14 +311,13 @@ void World::removeBlock(const Vec3i &pos) {
 }
 
 void World::update(const glm::vec3 &pos, const glm::mat4 &view, const glm::mat4 &proj) {
-    int renderDistance = 5; // Isso cria uma área de (5*2+1) x (5*2+1) = 11x11 chunks
+    int renderDistance = 5;
 
-    // Encontra em qual chunk o jogador está
     int playerChunkX = static_cast<int>(floor(pos.x / CHUNK_WIDTH));
     int playerChunkZ = static_cast<int>(floor(pos.z / CHUNK_DEPTH));
 
     // FASE 1: Carregamento/Geração de chunks
-    std::vector<Vec3i> newlyCreatedChunks;
+    std::vector<Vec3i> newlyLoadedChunks;
 
     Frustum frustum;
     frustum.update(view, proj);
@@ -262,29 +330,39 @@ void World::update(const glm::vec3 &pos, const glm::mat4 &view, const glm::mat4 
             glm::vec3 maxPos = {(chunkPos.x * CHUNK_WIDTH) + CHUNK_WIDTH, (chunkPos.y * CHUNK_HEIGHT) + CHUNK_HEIGHT, (chunkPos.z * CHUNK_DEPTH) + CHUNK_DEPTH};
             AABB chunkAABB = {minPos, maxPos};
             if (frustum.isBoxInFrustum(chunkAABB)) {
-                std::cout << "Chunk dentro do Frustum: ["<< chunkPos.x << "," << chunkPos.z << "]!" << std::endl;
-                // Verifica se o chunk já existe no nosso mapa
                 if (world.find(chunkPos) == world.end()) {
                     std::string filename = "chunk_" + std::to_string(i) + "_" + std::to_string(j) + ".chunk";
                     std::filesystem::path filepath = saveDir/filename;
                     Chunk newChunk;
                     if (!newChunk.loadFile(filepath.string(), (*this), chunkPos)) {
-                        generateChunkData(newChunk, chunkPos);
-                        newlyCreatedChunks.push_back(chunkPos); // Marca como recém-criado
+                        //Profiler::measure("World::generateChunkData()", [&]() {
+                            generateChunkData(newChunk, chunkPos);
+                        //});
+                        newlyLoadedChunks.push_back(chunkPos);
                     }
                     world[chunkPos] = std::move(newChunk);
+                    newlyLoadedChunks.push_back(chunkPos);
                 }
             }
         }
     }
 
-    // FASE 2: Atualização de iluminação para chunks recém-criados
-    for (const auto& chunkPos : newlyCreatedChunks) {
-        chunksNeedingLighting.insert(chunkPos);
+    // FASE 2: Colocar os chunks novos e seus vizinhos na fila para construir a malha
+    for (const auto& chunkPos : newlyLoadedChunks) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                Vec3i posToUpdate = {chunkPos.x + dx, 0, chunkPos.z + dz};
+                if (world.count(posToUpdate)) {
+                    chunksNeedingLighting.insert(posToUpdate);
+                }
+            }
+        }
     }
     
     // Atualiza iluminação dos chunks pendentes
-    updateChunkLighting();
+    //Profiler::measure("World::updateChunkLighing()", [&]() {
+        updateChunkLighting();
+    //});
 
     // FASE 3: Descarregamento de chunks distantes
     std::vector<Vec3i> chunksToUnload;
@@ -305,7 +383,6 @@ void World::update(const glm::vec3 &pos, const glm::mat4 &view, const glm::mat4 
             std::filesystem::path filepath = saveDir/filename;
             chunk.saveFile(filepath.string());
         }
-        // Remove da lista de chunks pendentes de iluminação também
         chunksNeedingLighting.erase(pos);
         world.erase(pos);
     }
@@ -313,22 +390,21 @@ void World::update(const glm::vec3 &pos, const glm::mat4 &view, const glm::mat4 
 
 void World::updateChunkLighting() {
     std::vector<Vec3i> completedChunks;
+    int chunksBuiltThisFrame = 0;
+    int MAX_CHUNKS_PER_FRAME = 2;
     
     for (const auto& chunkPos : chunksNeedingLighting) {
+        if (chunksBuiltThisFrame == MAX_CHUNKS_PER_FRAME) break;
         auto it = world.find(chunkPos);
         if (it != world.end()) {
-            // Verifica se os chunks vizinhos necessários existem
             bool canCalculateLighting = true;
-            
-            // Para um cálculo básico de skylight, precisamos principalmente do próprio chunk
-            // Mas para iluminação mais avançada, você pode verificar vizinhos aqui
-            
             if (canCalculateLighting) {
                 Chunk& chunk = it->second;
                 chunk.updateHeightMap();
                 chunk.buildMesh((*this), chunkPos);
                 chunk.buildWaterMesh((*this), chunkPos);
                 completedChunks.push_back(chunkPos);
+                chunksBuiltThisFrame++;
             }
         }
     }
@@ -340,76 +416,102 @@ void World::updateChunkLighting() {
 }
 
 void World::generateChunkData(Chunk &chunk, Vec3i chunkPos) {
+
+    FastNoiseLite temperatureNoise, humidityNoise, waterNoise, lakeNoise, caveNoise;
+    temperatureNoise.SetSeed(seed+1);
+    temperatureNoise.SetFrequency(0.0005f);
+    humidityNoise.SetSeed(seed+2);
+    humidityNoise.SetFrequency(0.0005f);
+    waterNoise.SetSeed(seed+3);
+    waterNoise.SetFrequency(0.01f);
+    lakeNoise.SetSeed(seed+4);
+    lakeNoise.SetFrequency(0.005f);
+    caveNoise.SetSeed(seed+5);
+    caveNoise.SetFrequency(0.05f);
+
     // 2. PREENCHIMENTO DOS CHUNKS
     for (int bx = 0; bx < CHUNK_WIDTH; bx++) {
         for (int bz = 0; bz < CHUNK_DEPTH; bz++) {
 
             float worldX = (chunkPos.x * CHUNK_WIDTH) + bx;
             float worldZ = (chunkPos.z * CHUNK_DEPTH) + bz;
-            int SEA_HEIGHT = CHUNK_HEIGHT / 4;
-            noise.SetFrequency(0.005f); // 0.0005 planice <=> 0.05 montanha
-            float terrainNoise = noise.GetNoise(worldX, worldZ);
-            int terrainHeight = (int)(CHUNK_HEIGHT/2) * (1.0f + terrainNoise);
-            noise.SetFrequency(0.01f);
-            float waterNoise = noise.GetNoise(worldX, worldZ);
-            int waterHeight = (int)(CHUNK_HEIGHT*0.3f);
 
-            // ÁGUA - Nível base global
-            int baseSeaLevel = CHUNK_HEIGHT / 3; // Nível fixo global
+            float tempValue = temperatureNoise.GetNoise(worldX, worldZ);
+            float humidityValue = humidityNoise.GetNoise(worldX, worldZ);
+
+            std::vector<float> weights;
+            float totalWeight = 0.0f;
             
-            // Lagos elevados apenas em áreas muito específicas
-            noise.SetFrequency(0.005f); // Frequência mais baixa = lagos maiores
-            float lakeNoise = noise.GetNoise(worldX, worldZ);
-            
-            int waterLevel = baseSeaLevel;
-            
-            // Apenas lagos muito grandes e suaves
-            if (lakeNoise > 0.6f) { // Threshold alto = menos lagos
-                int lakeHeight = (int)(10 * (lakeNoise - 0.6f)); // Lagos até 4 blocos mais altos
-                waterLevel = baseSeaLevel + lakeHeight;
+            // Cálculo do peso de cada bioma, somando com o peso total dos biomas
+            for (const auto &biome: biomes) {
+                float distTemp = tempValue - biome.idealTemp;
+                float distHumidity = humidityValue - biome.idealHumidity;
+                float distance = sqrt(distTemp * distTemp + distHumidity * distHumidity);
+                float weight = 1.0f / (pow(distance, 2.0f) + 0.0001f);
+                weights.push_back(weight);
+                totalWeight += weight;
             }
-            
-            // Garantir que não vai muito alto
-            waterLevel = std::min(waterLevel, CHUNK_HEIGHT - 20);
-            
-            // Garantir limites mínimos
-            waterHeight = std::max(5, std::min(waterHeight, CHUNK_HEIGHT - 10));
 
-            for (int by = 0; by <  CHUNK_HEIGHT; by++) {
-                if (by == 0) {
-                    chunk.setBlock(bx, by, bz, 4, false); // Rocha matriz
-                } else {
-                    float worldY = (float)by;
-                    noise.SetFrequency(0.05);
-                    float caveNoise = noise.GetNoise(worldX, worldY, worldZ);
-                    if (caveNoise > 0.1f && by <= (int)terrainHeight*0.8) {
-                        // if (by <=  baseSeaLevel * 0.7f) {
-                        //     chunk.setBlock(bx, by, bz, 5, false); // Água    
-                        // } else {
-                            chunk.setBlock(bx, by, bz, 0, false); // Ar         
-                        // }
-                    } else if (by < terrainHeight) {
-                            // Grama
-                            if (terrainHeight - by < 3) { chunk.setBlock(bx, by, bz, 1, false); } 
-                            // Terra
-                            else if (terrainHeight - by >= 3 && terrainHeight - by < 6) { chunk.setBlock(bx, by, bz, 2, false); } 
-                            // Pedra
-                            else { chunk.setBlock(bx, by, bz, 3, false); }
-                        } else {
-                            if (by <= waterLevel * 0.5) {
-                                chunk.setBlock(bx, by, bz, 5, false); // Água
-                            } else {
-                                chunk.setBlock(bx, by, bz, 0, false);
-                            }
-                        }
-                    }
+            // Normalização dos pesos de cada bioma (dessa forma cada peso varia entre [0, 1])
+            for (int i = 0; i < biomes.size(); i++) {
+                weights[i] /= totalWeight;
+            }
+
+            if (bx == 0 && bz == 0) {
+                std::cout << "--- Chunk [" << chunkPos.x << ", " << chunkPos.z << "] ---" << std::endl;
+                std::cout << "Valores de Ruido: Temp=" << tempValue << ", Umid=" << humidityValue << std::endl;
+                for (int i = 0; i < biomes.size(); i++) {
+                    std::cout << "  - Bioma: " << biomes[i].name << ", Peso: " << weights[i] << std::endl;
                 }
             }
+
+            float finalHeight = 0.0f;
+
+            // Calcula a altura com base na média ponderada das alturas de cada bioma
+            for (int i = 0; i < biomes.size(); i++) {
+                const Biome &biome = biomes[i];
+                noise.SetFrequency(biome.frequency);
+                float terrainNoise = noise.GetNoise(worldX, worldZ);
+                float biomeHeight = biome.baseHeight + (biome.amplitude * terrainNoise);
+                finalHeight += biomeHeight * weights[i];
+            }
+
+            
+            int domainBiomeIndex = std::distance(weights.begin(), std::max_element(weights.begin(), weights.end()));
+            const Biome &currentBiome = biomes[domainBiomeIndex];
+            //const Biome& currentBiome = biomes[3]; // Pra depurar um terreno específico
+
+            int terrainHeight = (int)finalHeight;
+
+            int waterLevel = CHUNK_HEIGHT/5;
+
+            for (int by = 0; by < CHUNK_HEIGHT; by++) {
+                float worldY = (float)by;
+                float caveValue = caveNoise.GetNoise(worldX, worldY, worldZ);
+                    if (caveValue > 0.01f && by <= (int)(terrainHeight*0.8) && by >= (int)(terrainHeight*0.2)) {
+                        chunk.setBlock(bx, by, bz, 0, false);
+                    } else {
+                        if (by > terrainHeight) {
+                            if (by <= waterLevel) {
+                               chunk.setBlock(bx, by, bz, ID_AGUA, false);
+                            } else {
+                                chunk.setBlock(bx, by, bz, ID_AR, false);
+                            }
+                        } else if (by == terrainHeight) {
+                            chunk.setBlock(bx, by, bz, currentBiome.topBlock, false);
+                        } else if (by < terrainHeight && by > terrainHeight-5){
+                            chunk.setBlock(bx, by, bz, currentBiome.subsurfaceBlock, false);
+                        } else if (by == 0) {
+                            chunk.setBlock(bx, by, bz, ID_ROCHA_MATRIZ, false);
+                        } else {
+                            chunk.setBlock(bx, by, bz, ID_PEDRA, false);
+                        }
+                    }
+            }
         }
+    }
     // 3. CONSTRUÇÃO DA MALHA OTIMIZADA
     chunk.updateHeightMap();
-    // chunk.buildMesh((*this), chunkPos);
-    // chunk.buildWaterMesh((*this), chunkPos);
 }
 
 void World::draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &view, const glm::vec3 &cameraPos) {
@@ -424,7 +526,6 @@ void World::draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &v
     int renderDistance = 5;
     int playerChunkX = static_cast<int>(floor(cameraPos.x / CHUNK_WIDTH));
     int playerChunkZ = static_cast<int>(floor(cameraPos.z / CHUNK_DEPTH));
-
 
     glDepthMask(GL_TRUE);
     for (int i = playerChunkX - renderDistance; i <= playerChunkX + renderDistance; i++) {

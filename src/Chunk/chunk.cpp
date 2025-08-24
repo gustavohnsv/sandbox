@@ -74,6 +74,7 @@ bool Chunk::saveFile(const std::string &filepath) const {
 }
 
 bool Chunk::loadFile(const std::string &filepath, const World &world, const Vec3i &chunkPos) {
+    auto start_file = std::chrono::high_resolution_clock::now();
     std::ifstream input(filepath, std::ios::binary);
     if (!input) {
         return false;
@@ -81,8 +82,9 @@ bool Chunk::loadFile(const std::string &filepath, const World &world, const Vec3
     input.read(reinterpret_cast<char*>(blocks), sizeof(blocks));
     input.close();
     updateHeightMap();
-    buildMesh(world, chunkPos);
-    buildWaterMesh(world, chunkPos);
+    // buildMesh(world, chunkPos);
+    // buildWaterMesh(world, chunkPos);
+
     return true;
 }
 
@@ -97,90 +99,141 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
         for (int y = 0; y < CHUNK_HEIGHT; y++) {
             for (int z = 0; z < CHUNK_DEPTH; z++) {
                 int type = blocks[x][y][z];
-                if (type == 0 || type == 5) continue;
+                if (type == ID_AR || type == ID_AGUA) continue;
                 int globalX = chunkPos.x * CHUNK_WIDTH + x;
                 int globalY = chunkPos.y * CHUNK_HEIGHT + y;
                 int globalZ = chunkPos.z * CHUNK_DEPTH + z;
-                float skylight_top = world.isExposedToSky(globalX, globalY, globalZ) ? 0.5: baseLight;
-                float skylight_other = baseLight;
+                const Block &blockInfo = world.getBlockInfo(type);
+                float atlasW = 512.0f;
+                float atlasH = 512.0f;
+                float tileW = 16.0f;
+                float tileH = 16.0f;
+                float uv_x_step = tileW / atlasW;
+                float uv_y_step = tileH / atlasH;
+                
+                // FACE CIMA (+Y) - verificar bloco acima
                 int blockAbove = world.getBlockType(Vec3i{globalX, globalY + 1, globalZ});
-                if (blockAbove == -1) blockAbove = 0;
-                if (blockAbove == 0 || blockAbove == 5) {
-                    mesh.insert(mesh.end(), {
-                        x - 0.5f, y + 0.5f, z - 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,        0.0f, 1.0f,     skylight_top,
-                        x + 0.5f, y + 0.5f, z - 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,        1.0f, 1.0f,     skylight_top,
-                        x + 0.5f, y + 0.5f, z + 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,        1.0f, 0.0f,     skylight_top,
-                        x + 0.5f, y + 0.5f, z + 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,        1.0f, 0.0f,     skylight_top,
-                        x - 0.5f, y + 0.5f, z + 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,        0.0f, 0.0f,     skylight_top,
-                        x - 0.5f, y + 0.5f, z - 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,        0.0f, 1.0f,     skylight_top,
+                if (blockAbove == -1) blockAbove = ID_AR;
+                if (blockAbove == ID_AR || blockAbove == ID_AGUA) {
+                    float u_min = blockInfo.tex_top.x * uv_x_step;
+                    float v_min = blockInfo.tex_top.y * uv_y_step;
+                    float u_max = u_min + uv_x_step;
+                    float v_max = v_min + uv_y_step;
+                    float faceLight = world.isExposedToSky(globalX, globalY + 1, globalZ) ? 0.5 : baseLight;
+                     mesh.insert(mesh.end(), {
+                        // Triângulo 1
+                        x - 0.5f, y + 0.5f, z - 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
+                        x + 0.5f, y + 0.5f, z - 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
+                        x + 0.5f, y + 0.5f, z + 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
+                        // Triângulo 2
+                        x + 0.5f, y + 0.5f, z + 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
+                        x - 0.5f, y + 0.5f, z + 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
+                        x - 0.5f, y + 0.5f, z - 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
                     });
                 }
+
+                // FACE BAIXO (-Y) - verificar bloco debaixo
                 int blockBelow = world.getBlockType(Vec3i{globalX, globalY - 1, globalZ});
-                if (blockBelow == -1) blockBelow = 0;
-                if (blockBelow == 0 || blockBelow == 5) {
+                if (blockBelow == -1) blockBelow = ID_AR;
+                if (blockBelow == ID_AR || blockBelow == ID_AGUA) {
+                    float u_min = blockInfo.tex_bottom.x * uv_x_step;
+                    float v_min = blockInfo.tex_bottom.y * uv_y_step;
+                    float u_max = u_min + uv_x_step;
+                    float v_max = v_min + uv_y_step;
+                    float faceLight = world.isExposedToSky(globalX, globalY - 1, globalZ) ? 0.1 : baseLight;
                     mesh.insert(mesh.end(), {
-                        x - 0.5f, y - 0.5f, z - 0.5f,   0.0f,-1.0f, 0.0f,   (float)type,        0.0f, 1.0f,     skylight_other,
-                        x + 0.5f, y - 0.5f, z + 0.5f,   0.0f,-1.0f, 0.0f,   (float)type,        1.0f, 1.0f,     skylight_other,
-                        x + 0.5f, y - 0.5f, z - 0.5f,   0.0f,-1.0f, 0.0f,   (float)type,        1.0f, 0.0f,     skylight_other,
-                        x + 0.5f, y - 0.5f, z + 0.5f,   0.0f,-1.0f, 0.0f,   (float)type,        1.0f, 0.0f,     skylight_other,
-                        x - 0.5f, y - 0.5f, z - 0.5f,   0.0f,-1.0f, 0.0f,   (float)type,        0.0f, 0.0f,     skylight_other,
-                        x - 0.5f, y - 0.5f, z + 0.5f,   0.0f,-1.0f, 0.0f,   (float)type,        0.0f, 1.0f,     skylight_other,
+                        // Triângulo 1
+                        x - 0.5f, y - 0.5f, z - 0.5f,   0.0f, -1.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
+                        x + 0.5f, y - 0.5f, z + 0.5f,   0.0f, -1.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
+                        x + 0.5f, y - 0.5f, z - 0.5f,   0.0f, -1.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
+                        // Triângulo 2
+                        x + 0.5f, y - 0.5f, z + 0.5f,   0.0f, -1.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
+                        x - 0.5f, y - 0.5f, z - 0.5f,   0.0f, -1.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
+                        x - 0.5f, y - 0.5f, z + 0.5f,   0.0f, -1.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
                     });
                 }
                 
                 // FACE DIREITA (+X) - verificar bloco à direita
                 int blockRight = world.getBlockType(Vec3i{globalX + 1, globalY, globalZ});
-                if (blockRight == -1) blockRight = 0;
-                if (blockRight == 0 || blockRight == 5) {
+                if (blockRight == -1) blockRight = ID_AR;
+                if (blockRight == ID_AR || blockRight == ID_AGUA) {
+                    float u_min = blockInfo.tex_side.x * uv_x_step;
+                    float v_min = blockInfo.tex_side.y * uv_y_step;
+                    float u_max = u_min + uv_x_step;
+                    float v_max = v_min + uv_y_step;
+                    float faceLight = world.isExposedToSky(globalX + 1, globalY, globalZ) ? 0.3 : baseLight;
                     mesh.insert(mesh.end(), {
-                        x + 0.5f, y - 0.5f, z - 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,        0.0f, 1.0f,     skylight_other,
-                        x + 0.5f, y - 0.5f, z + 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,        1.0f, 1.0f,     skylight_other,
-                        x + 0.5f, y + 0.5f, z + 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,        1.0f, 0.0f,     skylight_other,
-                        x + 0.5f, y + 0.5f, z + 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,        1.0f, 0.0f,     skylight_other,
-                        x + 0.5f, y + 0.5f, z - 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,        0.0f, 0.0f,     skylight_other,
-                        x + 0.5f, y - 0.5f, z - 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,        0.0f, 1.0f,     skylight_other,
+                        // Triângulo 1
+                        x + 0.5f, y - 0.5f, z - 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
+                        x + 0.5f, y - 0.5f, z + 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
+                        x + 0.5f, y + 0.5f, z + 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
+                        // Triângulo 2
+                        x + 0.5f, y + 0.5f, z + 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
+                        x + 0.5f, y + 0.5f, z - 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
+                        x + 0.5f, y - 0.5f, z - 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
                     });
                 }
                 
                 // FACE ESQUERDA (-X) - verificar bloco à esquerda
                 int blockLeft = world.getBlockType(Vec3i{globalX - 1, globalY, globalZ});
-                if (blockLeft == -1) blockLeft = 0;
-                if (blockLeft == 0 || blockLeft == 5) {
+                if (blockLeft == -1) blockLeft = ID_AR;
+                if (blockLeft == ID_AR || blockLeft == ID_AGUA) {
+                    float u_min = blockInfo.tex_side.x * uv_x_step;
+                    float v_min = blockInfo.tex_side.y * uv_y_step;
+                    float u_max = u_min + uv_x_step;
+                    float v_max = v_min + uv_y_step;
+                    float faceLight = world.isExposedToSky(globalX - 1, globalY, globalZ) ? 0.3 : baseLight;
                     mesh.insert(mesh.end(), {
-                        x - 0.5f, y - 0.5f, z - 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,        0.0f, 1.0f,     skylight_other,
-                        x - 0.5f, y + 0.5f, z + 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,        1.0f, 1.0f,     skylight_other,
-                        x - 0.5f, y - 0.5f, z + 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,        1.0f, 0.0f,     skylight_other,
-                        x - 0.5f, y + 0.5f, z + 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,        1.0f, 0.0f,     skylight_other,
-                        x - 0.5f, y - 0.5f, z - 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,        0.0f, 0.0f,     skylight_other,
-                        x - 0.5f, y + 0.5f, z - 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,        0.0f, 1.0f,     skylight_other,
+                        // Triângulo 1
+                        x - 0.5f, y - 0.5f, z - 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
+                        x - 0.5f, y + 0.5f, z + 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
+                        x - 0.5f, y - 0.5f, z + 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
+                        // Triângulo 2
+                        x - 0.5f, y + 0.5f, z + 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
+                        x - 0.5f, y - 0.5f, z - 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
+                        x - 0.5f, y + 0.5f, z - 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
                     });
                 }
                 
                 // FACE FRENTE (+Z) - verificar bloco na frente
                 int blockFront = world.getBlockType(Vec3i{globalX, globalY, globalZ + 1});
-                if (blockFront == -1) blockFront = 0;
-                if (blockFront == 0 || blockFront == 5) {
+                if (blockFront == -1) blockFront = ID_AR;
+                if (blockFront == ID_AR || blockFront == ID_AGUA) {
+                    float u_min = blockInfo.tex_side.x * uv_x_step;
+                    float v_min = blockInfo.tex_side.y * uv_y_step;
+                    float u_max = u_min + uv_x_step;
+                    float v_max = v_min + uv_y_step;
+                    float faceLight = world.isExposedToSky(globalX, globalY, globalZ + 1) ? 0.3 : baseLight;
                     mesh.insert(mesh.end(), {
-                        x - 0.5f, y - 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,        0.0f, 1.0f,     skylight_other,
-                        x + 0.5f, y - 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,        1.0f, 1.0f,     skylight_other,
-                        x + 0.5f, y + 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,        1.0f, 0.0f,     skylight_other,
-                        x + 0.5f, y + 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,        1.0f, 0.0f,     skylight_other,
-                        x - 0.5f, y + 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,        0.0f, 0.0f,     skylight_other,
-                        x - 0.5f, y - 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,        0.0f, 1.0f,     skylight_other,
+                        // Triângulo 1
+                        x - 0.5f, y - 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,   u_max, v_max,   faceLight,
+                        x + 0.5f, y - 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,   u_min, v_max,   faceLight,
+                        x + 0.5f, y + 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,   u_min, v_min,   faceLight,
+                        // Triângulo 2
+                        x + 0.5f, y + 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,   u_min, v_min,   faceLight,
+                        x - 0.5f, y + 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,   u_max, v_min,   faceLight,
+                        x - 0.5f, y - 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,   u_max, v_max,   faceLight,
                     });
                 }
                 
                 // FACE TRÁS (-Z) - verificar bloco atrás
                 int blockBack = world.getBlockType(Vec3i{globalX, globalY, globalZ - 1});
-                if (blockBack == -1) blockBack = 0;
-                if (blockBack == 0 || blockBack == 5) {
+                if (blockBack == -1) blockBack = ID_AR;
+                if (blockBack == ID_AR || blockBack == ID_AGUA) {
+                    float u_min = blockInfo.tex_side.x * uv_x_step;
+                    float v_min = blockInfo.tex_side.y * uv_y_step;
+                    float u_max = u_min + uv_x_step;
+                    float v_max = v_min + uv_y_step;
+                    float faceLight = world.isExposedToSky(globalX, globalY, globalZ - 1) ? 0.3 : baseLight;
                     mesh.insert(mesh.end(), {
-                        x - 0.5f, y - 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   (float)type,        0.0f, 1.0f,     skylight_other,
-                        x + 0.5f, y + 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   (float)type,        1.0f, 1.0f,     skylight_other,
-                        x + 0.5f, y - 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   (float)type,        1.0f, 0.0f,     skylight_other,
-                        x + 0.5f, y + 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   (float)type,        1.0f, 0.0f,     skylight_other,
-                        x - 0.5f, y - 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   (float)type,        0.0f, 0.0f,     skylight_other,
-                        x - 0.5f, y + 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   (float)type,        0.0f, 1.0f,     skylight_other,
+                        // Triângulo 1
+                        x - 0.5f, y - 0.5f, z - 0.5f,   0.0f, 0.0f, -1.0f,   (float)type,   u_min, v_max,   faceLight,
+                        x + 0.5f, y + 0.5f, z - 0.5f,   0.0f, 0.0f, -1.0f,   (float)type,   u_max, v_min,   faceLight,
+                        x + 0.5f, y - 0.5f, z - 0.5f,   0.0f, 0.0f, -1.0f,   (float)type,   u_max, v_max,   faceLight,
+                        // Triângulo 2
+                        x + 0.5f, y + 0.5f, z - 0.5f,   0.0f, 0.0f, -1.0f,   (float)type,   u_max, v_min,   faceLight,
+                        x - 0.5f, y - 0.5f, z - 0.5f,   0.0f, 0.0f, -1.0f,   (float)type,   u_min, v_max,   faceLight,
+                        x - 0.5f, y + 0.5f, z - 0.5f,   0.0f, 0.0f, -1.0f,   (float)type,   u_min, v_min,   faceLight,
                     });
                 }
             }
@@ -196,94 +249,147 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
 }
 
 void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
-    std::vector<float> mesh;
+        std::vector<float> mesh;
     float baseLight = 0.1;
     for (int x = 0; x < CHUNK_WIDTH; x++) {
         for (int y = 0; y < CHUNK_HEIGHT; y++) {
             for (int z = 0; z < CHUNK_DEPTH; z++) {
-                if (blocks[x][y][z] != 5) continue;
-                int type = 5;
+                if (blocks[x][y][z] != ID_AGUA) continue;
+                int type = ID_AGUA;
                 int globalX = chunkPos.x * CHUNK_WIDTH + x;
                 int globalY = chunkPos.y * CHUNK_HEIGHT + y;
                 int globalZ = chunkPos.z * CHUNK_DEPTH + z;
-                float skylight_top = world.isExposedToSky(globalX, globalY, globalZ) ? 0.5: baseLight;
-                float skylight_other = baseLight;
-                
-                // FACE SUPERIOR - verificar bloco acima (pode estar em outro chunk)
+                const Block &blockInfo = world.getBlockInfo(type);
+                float atlasW = 512.0f;
+                float atlasH = 512.0f;
+                float tileW = 16.0f;
+                float tileH = 16.0f;
+                float uv_x_step = tileW / atlasW;
+                float uv_y_step = tileH / atlasH;
+
+                // FACE CIMA (+Y) - verificar bloco acima
                 int blockAbove = world.getBlockType(Vec3i{globalX, globalY + 1, globalZ});
-                if (blockAbove == 0) { // Só desenhar se há ar acima
+                if (blockAbove == -1) blockAbove = 0;
+                if (blockAbove != ID_AGUA) {
+                    float u_min = blockInfo.tex_top.x * uv_x_step;
+                    float v_min = blockInfo.tex_top.y * uv_y_step;
+                    float u_max = u_min + uv_x_step;
+                    float v_max = v_min + uv_y_step;
+                    float faceLight = world.isExposedToSky(globalX, globalY + 1, globalZ) ? 0.5 : baseLight;
                     mesh.insert(mesh.end(), {
-                        x - 0.5f, y + 0.4f, z - 0.5f,   0.0f, 1.0f, 0.0f,   5.0f,        0.0f, 1.0f,     skylight_top,
-                        x + 0.5f, y + 0.4f, z - 0.5f,   0.0f, 1.0f, 0.0f,   5.0f,        1.0f, 1.0f,     skylight_top,
-                        x + 0.5f, y + 0.4f, z + 0.5f,   0.0f, 1.0f, 0.0f,   5.0f,        1.0f, 0.0f,     skylight_top,
-                        x + 0.5f, y + 0.4f, z + 0.5f,   0.0f, 1.0f, 0.0f,   5.0f,        1.0f, 0.0f,     skylight_top,
-                        x - 0.5f, y + 0.4f, z + 0.5f,   0.0f, 1.0f, 0.0f,   5.0f,        0.0f, 0.0f,     skylight_top,
-                        x - 0.5f, y + 0.4f, z - 0.5f,   0.0f, 1.0f, 0.0f,   5.0f,        0.0f, 1.0f,     skylight_top,
+                        // Triângulo 1
+                        x - 0.5f, y + 0.4f, z - 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        x + 0.5f, y + 0.4f, z - 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
+                        x + 0.5f, y + 0.4f, z + 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        // Triângulo 2
+                        x + 0.5f, y + 0.4f, z + 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        x - 0.5f, y + 0.4f, z + 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
+                        x - 0.5f, y + 0.4f, z - 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
                     });
                 }
-                
-                // FACE INFERIOR - verificar bloco abaixo
+
+                // FACE BAIXO (-Y) - verificar bloco debaixo
                 int blockBelow = world.getBlockType(Vec3i{globalX, globalY - 1, globalZ});
-                if (blockBelow == 0) {
+                if (blockBelow == -1) blockBelow = 0;
+                if (blockBelow != ID_AGUA) {
+                    float u_min = blockInfo.tex_bottom.x * uv_x_step;
+                    float v_min = blockInfo.tex_bottom.y * uv_y_step;
+                    float u_max = u_min + uv_x_step;
+                    float v_max = v_min + uv_y_step;
+                    float faceLight = world.isExposedToSky(globalX, globalY - 1, globalZ) ? 0.1 : baseLight;
                     mesh.insert(mesh.end(), {
-                        x - 0.5f, y - 0.5f, z - 0.5f,   0.0f,-1.0f, 0.0f,   5.0f,        0.0f, 1.0f,     skylight_other,
-                        x + 0.5f, y - 0.5f, z + 0.5f,   0.0f,-1.0f, 0.0f,   5.0f,        1.0f, 1.0f,     skylight_other,
-                        x + 0.5f, y - 0.5f, z - 0.5f,   0.0f,-1.0f, 0.0f,   5.0f,        1.0f, 0.0f,     skylight_other,
-                        x + 0.5f, y - 0.5f, z + 0.5f,   0.0f,-1.0f, 0.0f,   5.0f,        1.0f, 0.0f,     skylight_other,
-                        x - 0.5f, y - 0.5f, z - 0.5f,   0.0f,-1.0f, 0.0f,   5.0f,        0.0f, 0.0f,     skylight_other,
-                        x - 0.5f, y - 0.5f, z + 0.5f,   0.0f,-1.0f, 0.0f,   5.0f,        0.0f, 1.0f,     skylight_other,
+                        // Triângulo 1
+                        x - 0.5f, y - 0.5f, z - 0.5f,   0.0f,-1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        x + 0.5f, y - 0.5f, z + 0.5f,   0.0f,-1.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
+                        x + 0.5f, y - 0.5f, z - 0.5f,   0.0f,-1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        // Triângulo 2
+                        x + 0.5f, y - 0.5f, z + 0.5f,   0.0f,-1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        x - 0.5f, y - 0.5f, z - 0.5f,   0.0f,-1.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
+                        x - 0.5f, y - 0.5f, z + 0.5f,   0.0f,-1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
                     });
                 }
                 
                 // FACE DIREITA (+X) - verificar bloco à direita
                 int blockRight = world.getBlockType(Vec3i{globalX + 1, globalY, globalZ});
-                if (blockRight == 0) {
+                if (blockRight == -1) blockRight = 0;
+                if (blockRight != ID_AGUA) {
+                    float u_min = blockInfo.tex_side.x * uv_x_step;
+                    float v_min = blockInfo.tex_side.y * uv_y_step;
+                    float u_max = u_min + uv_x_step;
+                    float v_max = v_min + uv_y_step;
+                    float faceLight = world.isExposedToSky(globalX + 1, globalY, globalZ) ? 0.3 : baseLight;
                     mesh.insert(mesh.end(), {
-                        x + 0.5f, y - 0.5f, z - 0.5f,   1.0f, 0.0f, 0.0f,   5.0f,        0.0f, 1.0f,     skylight_other,
-                        x + 0.5f, y - 0.5f, z + 0.5f,   1.0f, 0.0f, 0.0f,   5.0f,        1.0f, 1.0f,     skylight_other,
-                        x + 0.5f, y + 0.5f, z + 0.5f,   1.0f, 0.0f, 0.0f,   5.0f,        1.0f, 0.0f,     skylight_other,
-                        x + 0.5f, y + 0.5f, z + 0.5f,   1.0f, 0.0f, 0.0f,   5.0f,        1.0f, 0.0f,     skylight_other,
-                        x + 0.5f, y + 0.5f, z - 0.5f,   1.0f, 0.0f, 0.0f,   5.0f,        0.0f, 0.0f,     skylight_other,
-                        x + 0.5f, y - 0.5f, z - 0.5f,   1.0f, 0.0f, 0.0f,   5.0f,        0.0f, 1.0f,     skylight_other,
+                        // Triângulo 1
+                        x + 0.5f, y - 0.5f, z - 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        x + 0.5f, y - 0.5f, z + 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
+                        x + 0.5f, y + 0.5f, z + 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        // Triângulo 2
+                        x + 0.5f, y + 0.5f, z + 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        x + 0.5f, y + 0.5f, z - 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
+                        x + 0.5f, y - 0.5f, z - 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
                     });
                 }
                 
                 // FACE ESQUERDA (-X) - verificar bloco à esquerda
-                int blockLeft = world.getBlockType(Vec3i{globalX - 1, globalY, globalZ}); 
-                if (blockLeft == 0) {
+                int blockLeft = world.getBlockType(Vec3i{globalX - 1, globalY, globalZ});
+                if (blockLeft == -1) blockLeft = 0;
+                if (blockLeft != ID_AGUA) {
+                    float u_min = blockInfo.tex_side.x * uv_x_step;
+                    float v_min = blockInfo.tex_side.y * uv_y_step;
+                    float u_max = u_min + uv_x_step;
+                    float v_max = v_min + uv_y_step;
+                    float faceLight = world.isExposedToSky(globalX - 1, globalY, globalZ) ? 0.3 : baseLight;
                     mesh.insert(mesh.end(), {
-                        x - 0.5f, y - 0.5f, z - 0.5f,  -1.0f, 0.0f, 0.0f,   5.0f,        0.0f, 1.0f,     skylight_other,
-                        x - 0.5f, y + 0.5f, z + 0.5f,  -1.0f, 0.0f, 0.0f,   5.0f,        1.0f, 1.0f,     skylight_other,
-                        x - 0.5f, y - 0.5f, z + 0.5f,  -1.0f, 0.0f, 0.0f,   5.0f,        1.0f, 0.0f,     skylight_other,
-                        x - 0.5f, y + 0.5f, z + 0.5f,  -1.0f, 0.0f, 0.0f,   5.0f,        1.0f, 0.0f,     skylight_other,
-                        x - 0.5f, y - 0.5f, z - 0.5f,  -1.0f, 0.0f, 0.0f,   5.0f,        0.0f, 0.0f,     skylight_other,
-                        x - 0.5f, y + 0.5f, z - 0.5f,  -1.0f, 0.0f, 0.0f,   5.0f,        0.0f, 1.0f,     skylight_other,
+                        // Triângulo 1
+                        x - 0.5f, y - 0.5f, z - 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        x - 0.5f, y + 0.5f, z + 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
+                        x - 0.5f, y - 0.5f, z + 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        // Triângulo 2
+                        x - 0.5f, y + 0.5f, z + 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        x - 0.5f, y - 0.5f, z - 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
+                        x - 0.5f, y + 0.5f, z - 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
                     });
                 }
                 
                 // FACE FRENTE (+Z) - verificar bloco na frente
                 int blockFront = world.getBlockType(Vec3i{globalX, globalY, globalZ + 1});
-                if (blockFront == 0) {
+                if (blockFront == -1) blockFront = 0;
+                if (blockFront != ID_AGUA) {
+                    float u_min = blockInfo.tex_side.x * uv_x_step;
+                    float v_min = blockInfo.tex_side.y * uv_y_step;
+                    float u_max = u_min + uv_x_step;
+                    float v_max = v_min + uv_y_step;
+                    float faceLight = world.isExposedToSky(globalX, globalY, globalZ + 1) ? 0.3 : baseLight;
                     mesh.insert(mesh.end(), {
-                        x - 0.5f, y - 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   5.0f,        0.0f, 1.0f,     skylight_other,
-                        x + 0.5f, y - 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   5.0f,        1.0f, 1.0f,     skylight_other,
-                        x + 0.5f, y + 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   5.0f,        1.0f, 0.0f,     skylight_other,
-                        x + 0.5f, y + 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   5.0f,        1.0f, 0.0f,     skylight_other,
-                        x - 0.5f, y + 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   5.0f,        0.0f, 0.0f,     skylight_other,
-                        x - 0.5f, y - 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   5.0f,        0.0f, 1.0f,     skylight_other,
+                        // Triângulo 1
+                        x - 0.5f, y - 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,        u_min, v_max,     faceLight,
+                        x + 0.5f, y - 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,        u_max, v_max,     faceLight,
+                        x + 0.5f, y + 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,        u_max, v_min,     faceLight,
+                        // Triângulo 2
+                        x + 0.5f, y + 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,        u_max, v_min,     faceLight,
+                        x - 0.5f, y + 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,        u_min, v_min,     faceLight,
+                        x - 0.5f, y - 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,        u_min, v_max,     faceLight,
                     });
                 }
                 
                 // FACE TRÁS (-Z) - verificar bloco atrás
                 int blockBack = world.getBlockType(Vec3i{globalX, globalY, globalZ - 1});
-                if (blockBack == 0) {
+                if (blockBack == -1) blockBack = 0;
+                if (blockBack != ID_AGUA) {
+                    float u_min = blockInfo.tex_side.x * uv_x_step;
+                    float v_min = blockInfo.tex_side.y * uv_y_step;
+                    float u_max = u_min + uv_x_step;
+                    float v_max = v_min + uv_y_step;
+                    float faceLight = world.isExposedToSky(globalX, globalY, globalZ - 1) ? 0.3 : baseLight;
                     mesh.insert(mesh.end(), {
-                        x - 0.5f, y - 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   5.0f,        0.0f, 1.0f,     skylight_other,
-                        x + 0.5f, y + 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   5.0f,        1.0f, 1.0f,     skylight_other,
-                        x + 0.5f, y - 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   5.0f,        1.0f, 0.0f,     skylight_other,
-                        x + 0.5f, y + 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   5.0f,        1.0f, 0.0f,     skylight_other,
-                        x - 0.5f, y - 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   5.0f,        0.0f, 0.0f,     skylight_other,
-                        x - 0.5f, y + 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   5.0f,        0.0f, 1.0f,     skylight_other,
+                        // Triângulo 1
+                        x - 0.5f, y - 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   (float)type,        u_min, v_max,     faceLight,
+                        x + 0.5f, y + 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   (float)type,        u_max, v_max,     faceLight,
+                        x + 0.5f, y - 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   (float)type,        u_max, v_min,     faceLight,
+                        // Triângulo 2
+                        x + 0.5f, y + 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   (float)type,        u_max, v_min,     faceLight,
+                        x - 0.5f, y - 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   (float)type,        u_min, v_min,     faceLight,
+                        x - 0.5f, y + 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   (float)type,        u_min, v_max,     faceLight,
                     });
                 }
             }

@@ -4,11 +4,11 @@ set(CMAKE_CXX_STANDARD 17)
 
 include(FetchContent)
 
-FetchContent_Declare(
-  ftxui
-  GIT_REPOSITORY https://github.com/ArthurSonzogni/FTXUI.git
-  GIT_TAG        v6.1.9
-)
+#FetchContent_Declare(
+#  ftxui
+#  GIT_REPOSITORY https://github.com/ArthurSonzogni/FTXUI.git
+#  GIT_TAG        v6.1.9
+#)
 
 FetchContent_Declare(
   GLFW
@@ -28,7 +28,8 @@ FetchContent_Declare(
   GIT_TAG         v1.90.8
 )
 
-FetchContent_MakeAvailable(ftxui glm GLFW)
+FetchContent_MakeAvailable(glm GLFW)
+#FetchContent_MakeAvailable(ftxui glm GLFW)
 FetchContent_GetProperties(imgui)
 if(NOT imgui_POPULATED)
   FetchContent_Populate(imgui)
@@ -67,4 +68,4 @@ add_executable(
 target_include_directories(sandbox PUBLIC vendor glad src ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
 
 target_link_libraries(sandbox PUBLIC glfw OpenGL X11::X11 glm imgui)
-target_link_libraries(sandbox PRIVATE ftxui::screen ftxui::component)
+#target_link_libraries(sandbox PRIVATE ftxui::screen ftxui::component)

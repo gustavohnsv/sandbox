@@ -7,7 +7,8 @@ in float BlockType;
 in vec2 TexCoord;
 in float Skylight;
 
-uniform sampler2D blockTextures[32];
+uniform sampler2D textureAtlas;
+//uniform sampler2D blockTextures[32];
 uniform vec3 lightColor;
 uniform vec3 lightPos;
 uniform vec3 cameraPos;
@@ -15,28 +16,7 @@ uniform vec3 cameraPos;
 void main()
 {
     int type = int(BlockType);
-    vec4 texColor;
-    
-    // Seleção de textura baseada no tipo do bloco
-    if (type == 1) {
-        texColor = texture(blockTextures[0], TexCoord); // Textura de Grama
-    }
-    else if (type == 2) {
-        texColor = texture(blockTextures[1], TexCoord); // Textura de Terra
-    }
-    else if (type == 3) {
-        texColor = texture(blockTextures[2], TexCoord); // Textura de Pedra
-    }
-    else if (type == 4) {
-        texColor = texture(blockTextures[3], TexCoord); // Textura da Rocha matriz (y = 0)
-    }
-    else if (type == 5) {
-        texColor = texture(blockTextures[4], TexCoord); // Textura de Água
-    } 
-    else {
-        // Cor padrão para debug, caso o tipo seja desconhecido
-        texColor = vec4(1.0, 0.0, 1.0, 1.0); // Magenta para debug
-    }
+    vec4 texColor = texture(textureAtlas, TexCoord);
     
     vec3 objectColor = texColor.rgb;
     

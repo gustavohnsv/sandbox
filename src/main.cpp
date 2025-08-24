@@ -83,7 +83,7 @@ int main() {
     // ============================================================================= 
     // Informa a direção em que as texturas devem ser carregadas
     // =============================================================================
-    stbi_set_flip_vertically_on_load(true);
+    //stbi_set_flip_vertically_on_load(true);
 
     // ============================================================================= 
     // Informa ao programa qual o diretório "raiz"
@@ -187,17 +187,25 @@ int main() {
     // ============================================================================= 
     // Inicialização das texturas
     // =============================================================================
-    std::optional<std::filesystem::path> grass = findPath(startDir, "grass.jpg");
-    std::optional<std::filesystem::path> dirt = findPath(startDir, "dirt.jpg");
-    std::optional<std::filesystem::path> stone = findPath(startDir, "stone.jpg");
-    std::optional<std::filesystem::path> water = findPath(startDir, "water.jpg");
-    std::optional<std::filesystem::path> rootstone = findPath(startDir, "rootstone.jpg");
-    if (!grass.has_value() && !dirt.has_value() && !stone.has_value() && !water.has_value() && !rootstone.has_value()) return -1;
-    Texture grassTexture((*grass).c_str());
-    Texture dirtTexture((*dirt).c_str());
-    Texture stoneTexture((*stone).c_str());
-    Texture waterTexture((*water).c_str());
-    Texture rootstoneTexture((*rootstone).c_str());
+    // std::optional<std::filesystem::path> grass = findPath(startDir, "grass.jpg");
+    // std::optional<std::filesystem::path> dirt = findPath(startDir, "dirt.jpg");
+    // std::optional<std::filesystem::path> stone = findPath(startDir, "stone.jpg");
+    // std::optional<std::filesystem::path> water = findPath(startDir, "water.jpg");
+    // std::optional<std::filesystem::path> rootstone = findPath(startDir, "rootstone.jpg");
+    // std::optional<std::filesystem::path> sand = findPath(startDir, "sand.jpg");
+    // std::optional<std::filesystem::path> sandstone = findPath(startDir, "sandstone.jpg");
+    // if (!grass.has_value() && !dirt.has_value() && !stone.has_value() && !water.has_value() && !rootstone.has_value() && !sand.has_value() && !sandstone.has_value()) return -1;
+    // Texture grassTexture((*grass).c_str());
+    // Texture dirtTexture((*dirt).c_str());
+    // Texture stoneTexture((*stone).c_str());
+    // Texture waterTexture((*water).c_str());
+    // Texture rootstoneTexture((*rootstone).c_str());
+    // Texture sandTexture((*sand).c_str());
+    // Texture sandStoneTexture((*sandstone).c_str());
+
+    std::optional<std::filesystem::path> atlasPath = findPath(startDir, "texturepack.png");
+    if (!atlasPath.has_value()) return -1;
+    Texture atlasTexture((*atlasPath).c_str());
 
     // ============================================================================= 
     // Inicialização e configuração da "mira" da câmera
@@ -244,21 +252,31 @@ int main() {
     // shaderProgram.setVec3("lightPos", lightPosition.x, lightPosition.y+1, lightPosition.z);
     shaderProgram.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
     // angle += 0.01f;
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, grassTexture.ID);
+    // glActiveTexture(GL_TEXTURE1);
+    // glBindTexture(GL_TEXTURE_2D, dirtTexture.ID);
+    // glActiveTexture(GL_TEXTURE2);
+    // glBindTexture(GL_TEXTURE_2D, stoneTexture.ID);
+    // glActiveTexture(GL_TEXTURE3);
+    // glBindTexture(GL_TEXTURE_2D, rootstoneTexture.ID);
+    // glActiveTexture(GL_TEXTURE4);
+    // glBindTexture(GL_TEXTURE_2D, waterTexture.ID);
+    // glActiveTexture(GL_TEXTURE5);
+    // glBindTexture(GL_TEXTURE_2D, sandTexture.ID);
+    // glActiveTexture(GL_TEXTURE6);
+    // glBindTexture(GL_TEXTURE_2D, sandStoneTexture.ID);
+    // shaderProgram.setInt("blockTextures[0]", 0);
+    // shaderProgram.setInt("blockTextures[1]", 1);
+    // shaderProgram.setInt("blockTextures[2]", 2);
+    // shaderProgram.setInt("blockTextures[3]", 3);
+    // shaderProgram.setInt("blockTextures[4]", 4);
+    // shaderProgram.setInt("blockTextures[5]", 5);
+    // shaderProgram.setInt("blockTextures[6]", 6);
+
+    shaderProgram.setInt("textureAtlas", 0);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, grassTexture.ID);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, dirtTexture.ID);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, stoneTexture.ID);
-    glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, rootstoneTexture.ID);
-    glActiveTexture(GL_TEXTURE4);
-    glBindTexture(GL_TEXTURE_2D, waterTexture.ID);
-    shaderProgram.setInt("blockTextures[0]", 0);
-    shaderProgram.setInt("blockTextures[1]", 1);
-    shaderProgram.setInt("blockTextures[2]", 2);
-    shaderProgram.setInt("blockTextures[3]", 3);
-    shaderProgram.setInt("blockTextures[4]", 4);
+    glBindTexture(GL_TEXTURE_2D, atlasTexture.ID);
 
     // ============================================================================= 
     // Inicialização do laço principal do programa
@@ -372,7 +390,9 @@ int main() {
         // ============================================================================= 
         // Atualização das coordenadas no mundo para carregamento de chunks
         // =============================================================================
-        world.update(camera.getPos(), camera.getView(), camera.getProj());
+        //Profiler::measure("World::update()", [&]() {
+            world.update(camera.getPos(), camera.getView(), camera.getProj());
+        //});
 
         // ============================================================================= 
         // Renderização dos objetos, foco do objeto e renderização das bordas do chunk
@@ -382,7 +402,7 @@ int main() {
         if (rcResult.hit) {
             world.highlight(borderShaderProgram, rcResult.blockPos, camera.getProj(), camera.getView());
         }
-        // debug.drawChunkGrid(camera, camera.getProj(), camera.getView());
+        debug.drawChunkGrid(camera, camera.getProj(), camera.getView());
 
         // ============================================================================= 
         // Renderização da janela de depuração
@@ -393,7 +413,7 @@ int main() {
         // ============================================================================= 
         // ?
         // =============================================================================
-        glClear(GL_DEPTH_BUFFER_BIT);
+        // glClear(GL_DEPTH_BUFFER_BIT);
         
         // ============================================================================= 
         // Renderização da "mira" da câmera

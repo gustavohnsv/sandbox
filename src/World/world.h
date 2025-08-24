@@ -7,13 +7,6 @@
 #include "../Shaders/shaders.h"
 #include "../Other/FastNoiseLite.h"
 
-const int ID_AR             = 0;
-const int ID_GRAMA          = 1;
-const int ID_TERRA          = 2;
-const int ID_PEDRA          = 3;
-const int ID_ROCHA_MATRIZ   = 4;
-const int ID_AGUA           = 5;
-
 class Shader;
 
 class World {
@@ -24,9 +17,10 @@ class World {
         void create();
         Chunk* getChunk(int x, int y, int z);
         const Chunk* getChunk(int x, int y, int z) const;
-        const std::map<Vec3i, Chunk> getChunks() const;
+        const std::unordered_map<Vec3i, Chunk, Vec3iHasher> getChunks() const;
         int getBlockType(const Vec3i &pos) const;
         std::string getBlockName(int type) const;
+        Block getBlockInfo(int type) const;
         int getSeed() const;
         void addBlock(const Vec3i &pos);
         void removeBlock(const Vec3i &pos);
@@ -42,8 +36,10 @@ class World {
         std::filesystem::path saveDir;
         unsigned int VAO, VBO;
         unsigned int border_VAO, border_VBO;
-        std::map<Vec3i, Chunk> world;
-        std::set<Vec3i> chunksNeedingLighting;
+
+        std::unordered_map<Vec3i, Chunk, Vec3iHasher> world;
+        std::unordered_set<Vec3i, Vec3iHasher> chunksNeedingLighting;
+
         FastNoiseLite noise;
         void updateChunkLighting();
         void check();
