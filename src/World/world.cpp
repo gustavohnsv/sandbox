@@ -8,6 +8,12 @@ std::vector<Biome> biomes = {
         true,
     },
     {
+        "Planície nevada", ID_GRAMA_NEVE, ID_TERRA,
+        32.0f, 1.0f, 0.01f,
+        -0.5f, 0.0f,
+        false,
+    },
+    {
         "Montanhas", ID_PEDRA, ID_PEDRA, 
         60.0f, 30.0f, 0.03f, 
         0.4f, 0.0f,
@@ -41,25 +47,30 @@ void initializeBlockDatabase() {
     blockDatabase[ID_AR] = {"Ar", ID_AR, {-1, -1}, {-1, -1}, {-1, -1}};
     
     // Bloco de Grama: topo verde, lado com terra, fundo de terra
-    blockDatabase[ID_GRAMA] = {"Grama", ID_GRAMA, {3, 15}, {3, 29}, {3, 30}};
-
+    blockDatabase[ID_GRAMA] = {"Grama", ID_GRAMA, {63, 6}, {60, 6}, {27, 5}};
+    
+    // Bloco de Grama (Neve):
+    blockDatabase[ID_GRAMA_NEVE] = {"Neve", ID_GRAMA_NEVE, {33, 11}, {62, 6}, {27, 5}};
+    
     // Bloco de Terra: mesma textura em todos os lados
-    blockDatabase[ID_TERRA] = {"Terra", ID_TERRA, {3, 30}, {3, 30}, {3, 30}};
+    blockDatabase[ID_TERRA] = {"Terra", ID_TERRA, {27, 5}, {27, 5}, {27, 5}};
 
     // Bloco de Pedra: mesma textura em todos os lados
-    blockDatabase[ID_PEDRA] = {"Pedra", ID_PEDRA, {0, 5}, {0, 5}, {0, 5}};
+    blockDatabase[ID_PEDRA] = {"Pedra", ID_PEDRA, {13, 14}, {13, 14}, {13, 14}};
 
     // Rocha Matriz (Bedrock): uma pedra mais escura e resistente
-    blockDatabase[ID_ROCHA_MATRIZ] = {"Rocha matriz", ID_ROCHA_MATRIZ, {2, 5}, {2, 5}, {2, 5}};
+    blockDatabase[ID_ROCHA_MATRIZ] = {"Rocha matriz", ID_ROCHA_MATRIZ, {48, 0}, {48, 0}, {48, 0}};
     
     // Água: uma textura de água animada ou estática
-    blockDatabase[ID_AGUA] = {"Água", ID_AGUA, {0, 8}, {1, 8}, {1, 8}};
+    blockDatabase[ID_AGUA] = {"Água", ID_AGUA, {12, 16}, {13, 16}, {13, 16}};
 
     // Areia: para praias e desertos
-    blockDatabase[ID_AREIA] = {"Areia", ID_AREIA, {1, 6}, {1, 6}, {1, 6}};
+    blockDatabase[ID_AREIA] = {"Areia", ID_AREIA, {53, 12}, {53, 12}, {53, 12}};
     
     // Arenito: bloco subsuperfície do deserto
-    blockDatabase[ID_ARENITO] = {"Arenito", ID_ARENITO, {9, 12}, {9, 12}, {9, 12}};
+    blockDatabase[ID_ARENITO] = {"Arenito", ID_ARENITO, {56, 12}, {54, 12}, {55, 12}};
+
+
 }
 
 World::World() {
@@ -429,7 +440,7 @@ void World::generateChunkData(Chunk &chunk, Vec3i chunkPos) {
     caveNoise.SetSeed(seed+5);
     caveNoise.SetFrequency(0.05f);
 
-    // 2. PREENCHIMENTO DOS CHUNKS
+    // --- FASE 1: Gerar o terreno inicial ---
     for (int bx = 0; bx < CHUNK_WIDTH; bx++) {
         for (int bz = 0; bz < CHUNK_DEPTH; bz++) {
 
@@ -510,8 +521,22 @@ void World::generateChunkData(Chunk &chunk, Vec3i chunkPos) {
             }
         }
     }
-    // 3. CONSTRUÇÃO DA MALHA OTIMIZADA
+
+    // --- FASE 1.5: Atualizar mapa de altura do chunk ---
     chunk.updateHeightMap();
+    
+    // --- FASE 2: Adicionar Decorações/Estruturas ---
+    // for (int bx = 0; bx < CHUNK_WIDTH; bx++) {
+    //     for (int bz = 0; bz < CHUNK_DEPTH; bz++) {
+    //         int surfaceY = chunk.getHeightValue(bx, bz);
+    //         if (surfaceY == -1) continue;
+    //         if (rand() % 10 == 9) {
+    //             if (chunk.getBlock(bx, surfaceY, bz) == ID_GRAMA) {
+    //                 chunk.setBlock(bx, surfaceY + 1, bz, ID_ABOBORA, false);
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 void World::draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &view, const glm::vec3 &cameraPos) {

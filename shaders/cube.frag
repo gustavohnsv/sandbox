@@ -19,6 +19,19 @@ void main()
     vec4 texColor = texture(textureAtlas, TexCoord);
     
     vec3 objectColor = texColor.rgb;
+
+    if (type == 1 && Normal.y > 0.95) {
+        vec3 grassColor = vec3(0.34, 0.62, 0.21);
+        objectColor = grassColor * texColor.r;
+    }
+    // else if (type == 8 && Normal.y > 0.95) {
+    //     vec3 snowColor = vec3(0.9, 0.9, 0.9);
+    //     objectColor = snowColor * texColor.r;
+    // }
+    else if (type == 5 && Normal.y > 0.95) {
+        vec3 waterColor = vec3(0.21, 0.47, 0.91);
+        objectColor = waterColor * texColor.r;
+    }
     
     // SISTEMA DE ILUMINAÇÃO CORRIGIDO
     

@@ -203,7 +203,7 @@ int main() {
     // Texture sandTexture((*sand).c_str());
     // Texture sandStoneTexture((*sandstone).c_str());
 
-    std::optional<std::filesystem::path> atlasPath = findPath(startDir, "texturepack.png");
+    std::optional<std::filesystem::path> atlasPath = findPath(startDir, "mc_texturepack1024.png");
     if (!atlasPath.has_value()) return -1;
     Texture atlasTexture((*atlasPath).c_str());
 
@@ -402,7 +402,7 @@ int main() {
         if (rcResult.hit) {
             world.highlight(borderShaderProgram, rcResult.blockPos, camera.getProj(), camera.getView());
         }
-        debug.drawChunkGrid(camera, camera.getProj(), camera.getView());
+        // debug.drawChunkGrid(camera, camera.getProj(), camera.getView());
 
         // ============================================================================= 
         // Renderização da janela de depuração

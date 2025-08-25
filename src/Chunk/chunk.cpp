@@ -104,12 +104,17 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
                 int globalY = chunkPos.y * CHUNK_HEIGHT + y;
                 int globalZ = chunkPos.z * CHUNK_DEPTH + z;
                 const Block &blockInfo = world.getBlockInfo(type);
-                float atlasW = 512.0f;
+                float atlasW = 1024.0f;
                 float atlasH = 512.0f;
                 float tileW = 16.0f;
                 float tileH = 16.0f;
                 float uv_x_step = tileW / atlasW;
                 float uv_y_step = tileH / atlasH;
+
+                int pumpkinFace = -1;
+                if (type == ID_ABOBORA) {
+                    pumpkinFace = rand() % 4;
+                }
                 
                 // FACE CIMA (+Y) - verificar bloco acima
                 int blockAbove = world.getBlockType(Vec3i{globalX, globalY + 1, globalZ});
@@ -159,6 +164,10 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
                 if (blockRight == ID_AR || blockRight == ID_AGUA) {
                     float u_min = blockInfo.tex_side.x * uv_x_step;
                     float v_min = blockInfo.tex_side.y * uv_y_step;
+                    if (pumpkinFace != -1 && pumpkinFace != 0) {
+                        u_min = blockInfo.tex_top.x * uv_x_step;
+                        v_min = blockInfo.tex_top.y * uv_y_step;
+                    }
                     float u_max = u_min + uv_x_step;
                     float v_max = v_min + uv_y_step;
                     float faceLight = world.isExposedToSky(globalX + 1, globalY, globalZ) ? 0.3 : baseLight;
@@ -180,6 +189,10 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
                 if (blockLeft == ID_AR || blockLeft == ID_AGUA) {
                     float u_min = blockInfo.tex_side.x * uv_x_step;
                     float v_min = blockInfo.tex_side.y * uv_y_step;
+                    if (pumpkinFace != -1 && pumpkinFace != 1) {
+                        u_min = blockInfo.tex_top.x * uv_x_step;
+                        v_min = blockInfo.tex_top.y * uv_y_step;
+                    }
                     float u_max = u_min + uv_x_step;
                     float v_max = v_min + uv_y_step;
                     float faceLight = world.isExposedToSky(globalX - 1, globalY, globalZ) ? 0.3 : baseLight;
@@ -201,6 +214,10 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
                 if (blockFront == ID_AR || blockFront == ID_AGUA) {
                     float u_min = blockInfo.tex_side.x * uv_x_step;
                     float v_min = blockInfo.tex_side.y * uv_y_step;
+                    if (pumpkinFace != -1 && pumpkinFace != 2) {
+                        u_min = blockInfo.tex_top.x * uv_x_step;
+                        v_min = blockInfo.tex_top.y * uv_y_step;
+                    }
                     float u_max = u_min + uv_x_step;
                     float v_max = v_min + uv_y_step;
                     float faceLight = world.isExposedToSky(globalX, globalY, globalZ + 1) ? 0.3 : baseLight;
@@ -222,6 +239,10 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
                 if (blockBack == ID_AR || blockBack == ID_AGUA) {
                     float u_min = blockInfo.tex_side.x * uv_x_step;
                     float v_min = blockInfo.tex_side.y * uv_y_step;
+                    if (pumpkinFace != -1 && pumpkinFace != 3) {
+                        u_min = blockInfo.tex_top.x * uv_x_step;
+                        v_min = blockInfo.tex_top.y * uv_y_step;
+                    }
                     float u_max = u_min + uv_x_step;
                     float v_max = v_min + uv_y_step;
                     float faceLight = world.isExposedToSky(globalX, globalY, globalZ - 1) ? 0.3 : baseLight;
@@ -260,7 +281,7 @@ void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
                 int globalY = chunkPos.y * CHUNK_HEIGHT + y;
                 int globalZ = chunkPos.z * CHUNK_DEPTH + z;
                 const Block &blockInfo = world.getBlockInfo(type);
-                float atlasW = 512.0f;
+                float atlasW = 1024.0f;
                 float atlasH = 512.0f;
                 float tileW = 16.0f;
                 float tileH = 16.0f;

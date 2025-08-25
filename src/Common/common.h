@@ -36,6 +36,8 @@ const int ID_ROCHA_MATRIZ   = 4;
 const int ID_AGUA           = 5;
 const int ID_AREIA          = 6;
 const int ID_ARENITO        = 7;
+const int ID_GRAMA_NEVE     = 8;
+const int ID_ABOBORA        = 99; // Vai mudar depois
 
 // --- Bibliotecas Padrão do C ---
 #include <ctime> // Para a função time()
@@ -71,6 +73,12 @@ struct Vec2i {
     bool operator<(const Vec2i &other) const {
         if (x != other.x) return x < other.x;
         return y < other.y;
+    }
+
+    void operator=(const Vec2i &other) {
+        x = other.x;
+        y = other.y;
+        return;
     }
 };
 
