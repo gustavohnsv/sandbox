@@ -62,6 +62,8 @@ add_executable(
     src/Texture/texture.cpp
     src/Player/player.cpp
     src/Debugger/debugger.cpp
+    src/Blocks/blocks.cpp
+    src/Structures/structures.cpp
     vendor/glad/src/glad.c
 )
 

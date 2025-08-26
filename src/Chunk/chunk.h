@@ -21,6 +21,8 @@ class Chunk {
         void drawWater();
         void setBlock(int x, int y, int z, int type, bool isPlayerAction);
         void updateHeightMap();
+        void setPosition(const Vec3i& pos);
+        Vec3i getPosition() const;
         int getHeightValue(int x, int z) const;
         int getBlock(int x, int y, int z) const;
         bool isModified() const;
@@ -33,6 +35,7 @@ class Chunk {
         unsigned int water_VAO, water_VBO;
         int count;
         int waterCount;
+        Vec3i pos;
         void check();
 };
 

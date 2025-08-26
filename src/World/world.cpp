@@ -1,80 +1,6 @@
 #include "world.h"
 
-std::vector<Biome> biomes = {
-    {
-        "Planície", ID_GRAMA, ID_TERRA, 
-        32.0f, 1.0f, 0.01f, 
-        0.2f, 0.3f,
-        true,
-    },
-    {
-        "Planície nevada", ID_GRAMA_NEVE, ID_TERRA,
-        32.0f, 1.0f, 0.01f,
-        -0.5f, 0.0f,
-        false,
-    },
-    {
-        "Montanhas", ID_PEDRA, ID_PEDRA, 
-        60.0f, 30.0f, 0.03f, 
-        0.4f, 0.0f,
-        false,
-    },
-    {
-        "Deserto", ID_AREIA, ID_ARENITO, 
-        34.0f, 3.0f, 0.01f, 
-        0.8f, -0.7f,
-        false,
-    },
-    {
-        "Praia", ID_AREIA, ID_ARENITO,
-        24.0f, 2.0f, 0.01f,
-        0.8f, 0.5f,
-        true,
-    },
-    {
-        "Vales", ID_GRAMA, ID_TERRA,
-        20.0f, 50.0f, 0.04f,
-        0.4f, 0.0f,
-        false,
-    },
-};
-
-std::map<int, Block> blockDatabase;
-
-void initializeBlockDatabase() {
-    // Formato: {nome, tipo, {col, lin}_topo, {col, lin}_lado, {col, lin}_fundo}
-
-    blockDatabase[ID_AR] = {"Ar", ID_AR, {-1, -1}, {-1, -1}, {-1, -1}};
-    
-    // Bloco de Grama: topo verde, lado com terra, fundo de terra
-    blockDatabase[ID_GRAMA] = {"Grama", ID_GRAMA, {63, 6}, {60, 6}, {27, 5}};
-    
-    // Bloco de Grama (Neve):
-    blockDatabase[ID_GRAMA_NEVE] = {"Neve", ID_GRAMA_NEVE, {33, 11}, {62, 6}, {27, 5}};
-    
-    // Bloco de Terra: mesma textura em todos os lados
-    blockDatabase[ID_TERRA] = {"Terra", ID_TERRA, {27, 5}, {27, 5}, {27, 5}};
-
-    // Bloco de Pedra: mesma textura em todos os lados
-    blockDatabase[ID_PEDRA] = {"Pedra", ID_PEDRA, {13, 14}, {13, 14}, {13, 14}};
-
-    // Rocha Matriz (Bedrock): uma pedra mais escura e resistente
-    blockDatabase[ID_ROCHA_MATRIZ] = {"Rocha matriz", ID_ROCHA_MATRIZ, {48, 0}, {48, 0}, {48, 0}};
-    
-    // Água: uma textura de água animada ou estática
-    blockDatabase[ID_AGUA] = {"Água", ID_AGUA, {12, 16}, {13, 16}, {13, 16}};
-
-    // Areia: para praias e desertos
-    blockDatabase[ID_AREIA] = {"Areia", ID_AREIA, {53, 12}, {53, 12}, {53, 12}};
-    
-    // Arenito: bloco subsuperfície do deserto
-    blockDatabase[ID_ARENITO] = {"Arenito", ID_ARENITO, {56, 12}, {54, 12}, {55, 12}};
-
-
-}
-
-World::World() {
-    initializeBlockDatabase();
+World::World(const Blocks &blocks, const Structures &structures) {
     // 1. DEFINIÇÃO DAS VARIÁVEIS
     srand(time(NULL));
     this->seed = 1001 * rand();
@@ -90,10 +16,46 @@ World::World() {
         }
     }
     std::filesystem::create_directories(saveDir);
-    Block blockDictionary[] = {{"Ar", 0}, {"Grama", 1}, {"Terra", 2}, {"Pedra", 3}, {"Rocha matriz", 4}, {"Água", 5}};
-    for (auto it: blockDictionary) {
-        blockSummary[it.type] = std::move(it.name);
-    }
+    blockDatabase = blocks;
+    structureDatabase = structures;
+    biomes = {
+        {
+            "Planície", ID_GRAMA, ID_TERRA, 
+            32.0f, 1.0f, 0.01f, 
+            0.2f, 0.3f,
+            true,
+        },
+        {
+            "Planície nevada", ID_GRAMA_NEVE, ID_TERRA,
+            32.0f, 1.0f, 0.01f,
+            -0.5f, 0.0f,
+            false,
+        },
+        {
+            "Montanhas", ID_PEDRA, ID_PEDRA, 
+            60.0f, 30.0f, 0.03f, 
+            0.4f, 0.0f,
+            false,
+        },
+        {
+            "Deserto", ID_AREIA, ID_ARENITO, 
+            34.0f, 3.0f, 0.01f, 
+            0.8f, -0.7f,
+            false,
+        },
+        {
+            "Praia", ID_AREIA, ID_ARENITO,
+            24.0f, 2.0f, 0.01f,
+            0.8f, 0.5f,
+            true,
+        },
+        {
+            "Vales", ID_GRAMA, ID_TERRA,
+            20.0f, 50.0f, 0.04f,
+            0.4f, 0.0f,
+            false,
+        },
+    };
 
     // 2. CRIANDO OS OBJETOS PARA VERTICES E ARESTAS
     float vData[] = {
@@ -210,7 +172,6 @@ World::World() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-
     check();
 }
 
@@ -240,48 +201,41 @@ const std::unordered_map<Vec3i, Chunk, Vec3iHasher> World::getChunks() const{
 
 int World::getBlockType(const Vec3i &pos) const {
     int chunkX = static_cast<int>(floor((float)pos.x/CHUNK_WIDTH));
-    int chunkY = static_cast<int>(floor((float)pos.y/CHUNK_HEIGHT));
     int chunkZ = static_cast<int>(floor((float)pos.z/CHUNK_DEPTH));
-    Vec3i chunkPos = { chunkX, chunkY, chunkZ };
+    Vec3i chunkPos = { chunkX, 0, chunkZ };
     const Chunk* chunk = getChunk(chunkPos.x, chunkPos.y, chunkPos.z);
     if (chunk) {
         int localX = pos.x - chunkPos.x * CHUNK_WIDTH;
-        int localY = pos.y - chunkPos.y * CHUNK_HEIGHT;
+        int localY = pos.y;
         int localZ = pos.z - chunkPos.z * CHUNK_DEPTH;
         return chunk->getBlock(localX, localY, localZ);
+    } else {
+        return -1;
     }
-    return -1;
 }
 
 std::string World::getBlockName(int type) const {
-    if (type >= 0 && type < blockDatabase.size()) {
-        return blockDatabase[type].name;
-    }
-    return blockDatabase[ID_AR].name;
+    return blockDatabase.getBlockInfo(type).name;
 }
 
 Block World::getBlockInfo(int type) const {
-    if (type >= 0 && type < blockDatabase.size()) {
-        return blockDatabase[type];
-    }
-    return blockDatabase[ID_AR];
+    return blockDatabase.getBlockInfo(type);
 }
 
 int World::getSeed() const {
     return seed;
 }
 
-void World::addBlock(const Vec3i &pos) {
+void World::addBlock(const Vec3i &pos, int type, bool isPlayerAction) {
     int chunkX = static_cast<int>(floor((float)pos.x/CHUNK_WIDTH));
-    int chunkY = static_cast<int>(floor((float)pos.y/CHUNK_HEIGHT));
     int chunkZ = static_cast<int>(floor((float)pos.z/CHUNK_DEPTH));
-    Vec3i chunkPos = { chunkX, chunkY, chunkZ };
+    Vec3i chunkPos = { chunkX, 0, chunkZ };
     Chunk* chunk = getChunk(chunkPos.x, chunkPos.y, chunkPos.z);
     if (chunk) {
         int localX = pos.x - chunkPos.x * CHUNK_WIDTH;
-        int localY = pos.y - chunkPos.y * CHUNK_HEIGHT;
+        int localY = pos.y;
         int localZ = pos.z - chunkPos.z * CHUNK_DEPTH;
-        chunk->setBlock(localX, localY, localZ, 1, true);
+        chunk->setBlock(localX, localY, localZ, type, isPlayerAction);
         chunk->updateHeightMap();
         chunk->buildMesh((*this), chunkPos);
         chunk->buildWaterMesh((*this), chunkPos);
@@ -298,13 +252,12 @@ void World::addBlock(const Vec3i &pos) {
 
 void World::removeBlock(const Vec3i &pos) {
     int chunkX = static_cast<int>(floor((float)pos.x/CHUNK_WIDTH));
-    int chunkY = static_cast<int>(floor((float)pos.y/CHUNK_HEIGHT));
     int chunkZ = static_cast<int>(floor((float)pos.z/CHUNK_DEPTH));
-    Vec3i chunkPos = { chunkX, chunkY, chunkZ };
+    Vec3i chunkPos = { chunkX, 0, chunkZ };
     Chunk* chunk = getChunk(chunkPos.x, chunkPos.y, chunkPos.z);
     if (chunk) {
         int localX = pos.x - chunkPos.x * CHUNK_WIDTH;
-        int localY = pos.y - chunkPos.y * CHUNK_HEIGHT;
+        int localY = pos.y;
         int localZ = pos.z - chunkPos.z * CHUNK_DEPTH;
         chunk->setBlock(localX, localY, localZ, 0, true);
         chunk->updateHeightMap();
@@ -327,9 +280,6 @@ void World::update(const glm::vec3 &pos, const glm::mat4 &view, const glm::mat4 
     int playerChunkX = static_cast<int>(floor(pos.x / CHUNK_WIDTH));
     int playerChunkZ = static_cast<int>(floor(pos.z / CHUNK_DEPTH));
 
-    // FASE 1: Carregamento/Geração de chunks
-    std::vector<Vec3i> newlyLoadedChunks;
-
     Frustum frustum;
     frustum.update(view, proj);
     
@@ -347,27 +297,47 @@ void World::update(const glm::vec3 &pos, const glm::mat4 &view, const glm::mat4 
                     Chunk newChunk;
                     if (!newChunk.loadFile(filepath.string(), (*this), chunkPos)) {
                         //Profiler::measure("World::generateChunkData()", [&]() {
-                            generateChunkData(newChunk, chunkPos);
+                            generateChunkTerrain(newChunk, chunkPos);
                         //});
-                        newlyLoadedChunks.push_back(chunkPos);
                     }
                     world[chunkPos] = std::move(newChunk);
-                    newlyLoadedChunks.push_back(chunkPos);
+                    chunksNeedingDecoration.insert(chunkPos);
                 }
             }
         }
     }
 
-    // FASE 2: Colocar os chunks novos e seus vizinhos na fila para construir a malha
-    for (const auto& chunkPos : newlyLoadedChunks) {
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dz = -1; dz <= 1; dz++) {
-                Vec3i posToUpdate = {chunkPos.x + dx, 0, chunkPos.z + dz};
-                if (world.count(posToUpdate)) {
-                    chunksNeedingLighting.insert(posToUpdate);
+    // --- PROCESSAMENTO DAS FILAS (COM ORÇAMENTO) ---
+    int chunksDecoratedThisFrame = 0;
+    const int MAX_DECORATIONS_PER_FRAME = 2; // Orçamento: decore no máximo 2 chunks por quadro
+
+    std::vector<Vec3i> decoratedChunks;
+    // Percorre a fila de chunks esperando para serem decorados
+    for (const auto& chunkPos : chunksNeedingDecoration) {
+        if (chunksDecoratedThisFrame >= MAX_DECORATIONS_PER_FRAME) {
+            break; // Já atingimos o orçamento para este quadro
+        }
+
+        if (allNeighborsExist(chunkPos)) {
+            Profiler::measure("decorateChunk()", [&]() {
+                decorateChunk(chunkPos); // Fase 2
+            });
+            
+            // Após decorar, o chunk e seus vizinhos precisam ter a malha reconstruída
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    chunksNeedingLighting.insert({chunkPos.x + dx, 0, chunkPos.z + dz});
                 }
             }
+            
+            decoratedChunks.push_back(chunkPos); // Marca para remoção da fila de espera
+            chunksDecoratedThisFrame++;
         }
+    }
+
+    // Remove os chunks que acabaram de ser decorados da fila de espera
+    for (const auto& pos : decoratedChunks) {
+        chunksNeedingDecoration.erase(pos);
     }
     
     // Atualiza iluminação dos chunks pendentes
@@ -426,8 +396,7 @@ void World::updateChunkLighting() {
     }
 }
 
-void World::generateChunkData(Chunk &chunk, Vec3i chunkPos) {
-
+void World::generateChunkTerrain(Chunk &chunk, Vec3i chunkPos) {
     FastNoiseLite temperatureNoise, humidityNoise, waterNoise, lakeNoise, caveNoise;
     temperatureNoise.SetSeed(seed+1);
     temperatureNoise.SetFrequency(0.0005f);
@@ -524,19 +493,59 @@ void World::generateChunkData(Chunk &chunk, Vec3i chunkPos) {
 
     // --- FASE 1.5: Atualizar mapa de altura do chunk ---
     chunk.updateHeightMap();
-    
-    // --- FASE 2: Adicionar Decorações/Estruturas ---
-    // for (int bx = 0; bx < CHUNK_WIDTH; bx++) {
-    //     for (int bz = 0; bz < CHUNK_DEPTH; bz++) {
-    //         int surfaceY = chunk.getHeightValue(bx, bz);
-    //         if (surfaceY == -1) continue;
-    //         if (rand() % 10 == 9) {
-    //             if (chunk.getBlock(bx, surfaceY, bz) == ID_GRAMA) {
-    //                 chunk.setBlock(bx, surfaceY + 1, bz, ID_ABOBORA, false);
-    //             }
-    //         }
-    //     }
-    // }
+}
+
+void World::decorateChunk(Vec3i chunkPos) {
+    Chunk& chunk = world.at(chunkPos);
+
+    FastNoiseLite structuresNoise;
+    structuresNoise.SetSeed(seed+6);
+    structuresNoise.SetFrequency(0.05f);
+
+    const float treeThreshold = 0.8f; 
+
+    for (int bx = 0; bx < CHUNK_WIDTH; bx++) {
+        for (int bz = 0; bz < CHUNK_DEPTH; bz++) {
+            
+            float worldX = (chunkPos.x * CHUNK_WIDTH) + bx;
+            float worldZ = (chunkPos.z * CHUNK_DEPTH) + bz;
+
+            // 1. Pega o "potencial" deste ponto.
+            float noiseValue = structuresNoise.GetNoise(worldX, worldZ);
+
+            // 2. Se o potencial for baixo, ignora rapidamente.
+            if (noiseValue < treeThreshold) {
+                continue;
+            }
+
+            // 3. Se o potencial for alto, verifica se é o MAIOR da vizinhança (3x3).
+            bool isPeak = true;
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    if (dx == 0 && dz == 0) continue; // Não comparar consigo mesmo
+
+                    float neighborNoise = structuresNoise.GetNoise(worldX + dx, worldZ + dz);
+                    if (neighborNoise > noiseValue) {
+                        isPeak = false; // Encontrou um vizinho com maior potencial
+                        break;
+                    }
+                }
+                if (!isPeak) break;
+            }
+
+            // 4. Se este ponto for o "pico" local, ele é um candidato perfeito para uma árvore!
+            if (isPeak) {
+                int surfaceY = chunk.getHeightValue(bx, bz);
+                if (surfaceY != -1) {
+                    int blockType = chunk.getBlock(bx, surfaceY, bz);
+                    if (blockType == ID_GRAMA || blockType == ID_GRAMA_NEVE) {
+                        // Passa a coordenada GLOBAL para a função de posicionamento
+                        structureDatabase.placeStructure(ID_ARVORE, (*this), Vec3i{(int)worldX, surfaceY, (int)worldZ});
+                    }
+                }
+            }
+        }
+    }
 }
 
 void World::draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &view, const glm::vec3 &cameraPos) {
@@ -552,6 +561,7 @@ void World::draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &v
     int playerChunkX = static_cast<int>(floor(cameraPos.x / CHUNK_WIDTH));
     int playerChunkZ = static_cast<int>(floor(cameraPos.z / CHUNK_DEPTH));
 
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDepthMask(GL_TRUE);
     for (int i = playerChunkX - renderDistance; i <= playerChunkX + renderDistance; i++) {
         for (int j = playerChunkZ - renderDistance; j <= playerChunkZ + renderDistance; j++) {
@@ -608,8 +618,6 @@ void World::highlight(Shader &shader, const Vec3i &pos, const glm::mat4 &project
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(pos.x, pos.y, pos.z));
     glm::mat4 transform = projection * view * model;
-    //unsigned int transformLoc = glGetUniformLocation(shader.ID, "transform");
-    //glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
     shader.setMat4("transform", transform);
     glDrawArrays(GL_LINES, 0, 24);
     glBindVertexArray(0);
@@ -625,7 +633,7 @@ bool World::isExposedToSky(int x, int y, int z) const {
         return false;
     }
     int localX = x - chunkPos.x * CHUNK_WIDTH;
-    int localY = y - chunkPos.y * CHUNK_HEIGHT;
+    int localY = y;
     int localZ = z - chunkPos.z * CHUNK_DEPTH;
     
     int heightValue = it->second.getHeightValue(localX, localZ);
@@ -642,9 +650,23 @@ bool World::hasBlockAt(const Vec3i &pos) const {
         return false;
     }
     int localX = pos.x - chunkPos.x * CHUNK_WIDTH;
-    int localY = pos.y - chunkPos.y * CHUNK_HEIGHT;
+    int localY = pos.y;
     int localZ = pos.z - chunkPos.z * CHUNK_DEPTH;
     return it->second.getBlock(localX, localY, localZ) != 0;
+}
+
+bool World::allNeighborsExist(Vec3i chunkPos) const {
+    for (int dx = -1; dx <= 1; dx++) {
+        for (int dz = -1; dz <= 1; dz++) {
+            if (dx == 0 && dz == 0) continue; // Não precisa checar a si mesmo
+
+            Vec3i neighborPos = {chunkPos.x + dx, 0, chunkPos.z + dz};
+            if (world.find(neighborPos) == world.end()) {
+                return false; // Se qualquer vizinho não for encontrado, retorne falso
+            }
+        }
+    }
+    return true; // Todos os 8 vizinhos foram encontrados
 }
 
 void World::check() {

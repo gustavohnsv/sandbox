@@ -10,6 +10,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // --- Bibliotecas Padrão do C++ ---
+#include <condition_variable>
 #include <unordered_map>
 #include <unordered_set>
 #include <string_view>
@@ -23,6 +24,8 @@
 #include <vector>
 #include <chrono>
 #include <thread>
+#include <queue>
+#include <mutex>
 #include <atomic>
 #include <vector>
 #include <map>
@@ -37,7 +40,11 @@ const int ID_AGUA           = 5;
 const int ID_AREIA          = 6;
 const int ID_ARENITO        = 7;
 const int ID_GRAMA_NEVE     = 8;
+const int ID_CARVALHO       = 9;
+const int ID_PINHEIRO       = 10;
 const int ID_ABOBORA        = 99; // Vai mudar depois
+
+const int ID_ARVORE         = 1;
 
 // --- Bibliotecas Padrão do C ---
 #include <ctime> // Para a função time()

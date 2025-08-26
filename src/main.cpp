@@ -9,6 +9,8 @@
 #include "Camera/camera.h"
 #include "World/world.h"
 #include "Texture/texture.h"
+#include "Blocks/blocks.h"
+#include "Structures/structures.h"
 #include "Debugger/debugger.h"
 
 struct ApplicationContext {
@@ -61,7 +63,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
             world->removeBlock(rcResult.blockPos);
         }
         if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-            world->addBlock(rcResult.lastBlockPos);
+            world->addBlock(rcResult.lastBlockPos, ID_GRAMA, true);
         }
     }
 }
@@ -140,9 +142,19 @@ int main() {
     ImGui_ImplOpenGL3_Init(glsl_version);
 
     // ============================================================================= 
-    // Inicialização do mundo
+    // Inicialização do banco de dados de blocos
     // =============================================================================
-    World world;
+   Blocks blocks;
+
+   // ============================================================================= 
+    // Inicialização do banco de dados de estruturas
+    // =============================================================================
+   Structures structures;
+
+    // ============================================================================= 
+    // Inicialização do mundo (junto com o banco de dados de blocos)
+    // =============================================================================
+    World world(blocks, structures);
     world.create();
 
     // ============================================================================= 
@@ -402,7 +414,7 @@ int main() {
         if (rcResult.hit) {
             world.highlight(borderShaderProgram, rcResult.blockPos, camera.getProj(), camera.getView());
         }
-        // debug.drawChunkGrid(camera, camera.getProj(), camera.getView());
+        debug.drawChunkGrid(camera, camera.getProj(), camera.getView());
 
         // ============================================================================= 
         // Renderização da janela de depuração

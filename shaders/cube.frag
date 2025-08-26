@@ -8,7 +8,6 @@ in vec2 TexCoord;
 in float Skylight;
 
 uniform sampler2D textureAtlas;
-//uniform sampler2D blockTextures[32];
 uniform vec3 lightColor;
 uniform vec3 lightPos;
 uniform vec3 cameraPos;
@@ -28,7 +27,7 @@ void main()
     //     vec3 snowColor = vec3(0.9, 0.9, 0.9);
     //     objectColor = snowColor * texColor.r;
     // }
-    else if (type == 5 && Normal.y > 0.95) {
+    else if (type == 5) {
         vec3 waterColor = vec3(0.21, 0.47, 0.91);
         objectColor = waterColor * texColor.r;
     }

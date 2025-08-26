@@ -124,8 +124,9 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
                     float v_min = blockInfo.tex_top.y * uv_y_step;
                     float u_max = u_min + uv_x_step;
                     float v_max = v_min + uv_y_step;
-                    float faceLight = world.isExposedToSky(globalX, globalY + 1, globalZ) ? 0.5 : baseLight;
-                     mesh.insert(mesh.end(), {
+                    float faceLight = world.isExposedToSky(globalX, globalY + 1, globalZ) ? 1.0 : baseLight;
+                    if (type == ID_PEDRA) faceLight -= 0.4; 
+                    mesh.insert(mesh.end(), {
                         // Triângulo 1
                         x - 0.5f, y + 0.5f, z - 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
                         x + 0.5f, y + 0.5f, z - 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
@@ -145,7 +146,8 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
                     float v_min = blockInfo.tex_bottom.y * uv_y_step;
                     float u_max = u_min + uv_x_step;
                     float v_max = v_min + uv_y_step;
-                    float faceLight = world.isExposedToSky(globalX, globalY - 1, globalZ) ? 0.1 : baseLight;
+                    float faceLight = world.isExposedToSky(globalX, globalY - 1, globalZ) ? 0.5 : baseLight;
+                    if (type == ID_PEDRA) faceLight -= 0.4;
                     mesh.insert(mesh.end(), {
                         // Triângulo 1
                         x - 0.5f, y - 0.5f, z - 0.5f,   0.0f, -1.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
@@ -170,7 +172,8 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
                     }
                     float u_max = u_min + uv_x_step;
                     float v_max = v_min + uv_y_step;
-                    float faceLight = world.isExposedToSky(globalX + 1, globalY, globalZ) ? 0.3 : baseLight;
+                    float faceLight = world.isExposedToSky(globalX + 1, globalY, globalZ) ? 0.8 : baseLight;
+                    if (type == ID_PEDRA) faceLight -= 0.4;
                     mesh.insert(mesh.end(), {
                         // Triângulo 1
                         x + 0.5f, y - 0.5f, z - 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
@@ -195,7 +198,8 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
                     }
                     float u_max = u_min + uv_x_step;
                     float v_max = v_min + uv_y_step;
-                    float faceLight = world.isExposedToSky(globalX - 1, globalY, globalZ) ? 0.3 : baseLight;
+                    float faceLight = world.isExposedToSky(globalX - 1, globalY, globalZ) ? 0.8 : baseLight;
+                    if (type == ID_PEDRA) faceLight -= 0.4;
                     mesh.insert(mesh.end(), {
                         // Triângulo 1
                         x - 0.5f, y - 0.5f, z - 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
@@ -220,7 +224,8 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
                     }
                     float u_max = u_min + uv_x_step;
                     float v_max = v_min + uv_y_step;
-                    float faceLight = world.isExposedToSky(globalX, globalY, globalZ + 1) ? 0.3 : baseLight;
+                    float faceLight = world.isExposedToSky(globalX, globalY, globalZ + 1) ? 0.8 : baseLight;
+                    if (type == ID_PEDRA) faceLight -= 0.4;
                     mesh.insert(mesh.end(), {
                         // Triângulo 1
                         x - 0.5f, y - 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,   u_max, v_max,   faceLight,
@@ -245,7 +250,8 @@ void Chunk::buildMesh(const World &world, const Vec3i &chunkPos) {
                     }
                     float u_max = u_min + uv_x_step;
                     float v_max = v_min + uv_y_step;
-                    float faceLight = world.isExposedToSky(globalX, globalY, globalZ - 1) ? 0.3 : baseLight;
+                    float faceLight = world.isExposedToSky(globalX, globalY, globalZ - 1) ? 0.8 : baseLight;
+                    if (type == ID_PEDRA) faceLight -= 0.4;
                     mesh.insert(mesh.end(), {
                         // Triângulo 1
                         x - 0.5f, y - 0.5f, z - 0.5f,   0.0f, 0.0f, -1.0f,   (float)type,   u_min, v_max,   faceLight,
@@ -296,7 +302,7 @@ void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
                     float v_min = blockInfo.tex_top.y * uv_y_step;
                     float u_max = u_min + uv_x_step;
                     float v_max = v_min + uv_y_step;
-                    float faceLight = world.isExposedToSky(globalX, globalY + 1, globalZ) ? 0.5 : baseLight;
+                    float faceLight = world.isExposedToSky(globalX, globalY + 1, globalZ) ? 1.0 : baseLight;
                     mesh.insert(mesh.end(), {
                         // Triângulo 1
                         x - 0.5f, y + 0.4f, z - 0.5f,   0.0f, 1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
@@ -317,7 +323,7 @@ void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
                     float v_min = blockInfo.tex_bottom.y * uv_y_step;
                     float u_max = u_min + uv_x_step;
                     float v_max = v_min + uv_y_step;
-                    float faceLight = world.isExposedToSky(globalX, globalY - 1, globalZ) ? 0.1 : baseLight;
+                    float faceLight = world.isExposedToSky(globalX, globalY - 1, globalZ) ? 0.5 : baseLight;
                     mesh.insert(mesh.end(), {
                         // Triângulo 1
                         x - 0.5f, y - 0.5f, z - 0.5f,   0.0f,-1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
@@ -338,7 +344,7 @@ void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
                     float v_min = blockInfo.tex_side.y * uv_y_step;
                     float u_max = u_min + uv_x_step;
                     float v_max = v_min + uv_y_step;
-                    float faceLight = world.isExposedToSky(globalX + 1, globalY, globalZ) ? 0.3 : baseLight;
+                    float faceLight = world.isExposedToSky(globalX + 1, globalY, globalZ) ? 0.8 : baseLight;
                     mesh.insert(mesh.end(), {
                         // Triângulo 1
                         x + 0.5f, y - 0.5f, z - 0.5f,   1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
@@ -359,7 +365,7 @@ void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
                     float v_min = blockInfo.tex_side.y * uv_y_step;
                     float u_max = u_min + uv_x_step;
                     float v_max = v_min + uv_y_step;
-                    float faceLight = world.isExposedToSky(globalX - 1, globalY, globalZ) ? 0.3 : baseLight;
+                    float faceLight = world.isExposedToSky(globalX - 1, globalY, globalZ) ? 0.8 : baseLight;
                     mesh.insert(mesh.end(), {
                         // Triângulo 1
                         x - 0.5f, y - 0.5f, z - 0.5f,  -1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
@@ -380,7 +386,7 @@ void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
                     float v_min = blockInfo.tex_side.y * uv_y_step;
                     float u_max = u_min + uv_x_step;
                     float v_max = v_min + uv_y_step;
-                    float faceLight = world.isExposedToSky(globalX, globalY, globalZ + 1) ? 0.3 : baseLight;
+                    float faceLight = world.isExposedToSky(globalX, globalY, globalZ + 1) ? 0.8 : baseLight;
                     mesh.insert(mesh.end(), {
                         // Triângulo 1
                         x - 0.5f, y - 0.5f, z + 0.5f,   0.0f, 0.0f, 1.0f,   (float)type,        u_min, v_max,     faceLight,
@@ -401,7 +407,7 @@ void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
                     float v_min = blockInfo.tex_side.y * uv_y_step;
                     float u_max = u_min + uv_x_step;
                     float v_max = v_min + uv_y_step;
-                    float faceLight = world.isExposedToSky(globalX, globalY, globalZ - 1) ? 0.3 : baseLight;
+                    float faceLight = world.isExposedToSky(globalX, globalY, globalZ - 1) ? 0.8 : baseLight;
                     mesh.insert(mesh.end(), {
                         // Triângulo 1
                         x - 0.5f, y - 0.5f, z - 0.5f,   0.0f, 0.0f,-1.0f,   (float)type,        u_min, v_max,     faceLight,
@@ -458,6 +464,14 @@ void Chunk::updateHeightMap() {
             }
         }
     }
+}
+
+void Chunk::setPosition(const Vec3i& pos) {
+    this->pos = pos;
+}
+
+Vec3i Chunk::getPosition() const {
+    return pos;
 }
 
 int Chunk::getHeightValue(int x, int z) const {
