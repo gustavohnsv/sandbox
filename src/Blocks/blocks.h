@@ -3,6 +3,16 @@
 
 #include "../Common/common.h"
 
+enum BlockRenderType {
+    SOLID,
+    TRANSLUCENT,
+    WATER,
+    CROSS,
+    AIR
+};
+
+BlockRenderType getBlockRenderType(int type);
+
 class Blocks {
     public:
         Blocks();

@@ -63,7 +63,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
             world->removeBlock(rcResult.blockPos);
         }
         if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-            world->addBlock(rcResult.lastBlockPos, ID_GRAMA, true);
+            world->addBlock(rcResult.lastBlockPos, ID_VIDRO, true);
         }
     }
 }
@@ -81,7 +81,18 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) { // p
     }
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+
+    // ============================================================================= 
+    // 
+    // =============================================================================
+    bool drawGrid = false;
+
+    for (int i = 0; i < argc; i++) {
+        std::string arg = argv[i];
+        if (arg == "--grid") drawGrid = true;
+    }
+
     // ============================================================================= 
     // Informa a direção em que as texturas devem ser carregadas
     // =============================================================================
@@ -264,27 +275,6 @@ int main() {
     // shaderProgram.setVec3("lightPos", lightPosition.x, lightPosition.y+1, lightPosition.z);
     shaderProgram.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
     // angle += 0.01f;
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, grassTexture.ID);
-    // glActiveTexture(GL_TEXTURE1);
-    // glBindTexture(GL_TEXTURE_2D, dirtTexture.ID);
-    // glActiveTexture(GL_TEXTURE2);
-    // glBindTexture(GL_TEXTURE_2D, stoneTexture.ID);
-    // glActiveTexture(GL_TEXTURE3);
-    // glBindTexture(GL_TEXTURE_2D, rootstoneTexture.ID);
-    // glActiveTexture(GL_TEXTURE4);
-    // glBindTexture(GL_TEXTURE_2D, waterTexture.ID);
-    // glActiveTexture(GL_TEXTURE5);
-    // glBindTexture(GL_TEXTURE_2D, sandTexture.ID);
-    // glActiveTexture(GL_TEXTURE6);
-    // glBindTexture(GL_TEXTURE_2D, sandStoneTexture.ID);
-    // shaderProgram.setInt("blockTextures[0]", 0);
-    // shaderProgram.setInt("blockTextures[1]", 1);
-    // shaderProgram.setInt("blockTextures[2]", 2);
-    // shaderProgram.setInt("blockTextures[3]", 3);
-    // shaderProgram.setInt("blockTextures[4]", 4);
-    // shaderProgram.setInt("blockTextures[5]", 5);
-    // shaderProgram.setInt("blockTextures[6]", 6);
 
     shaderProgram.setInt("textureAtlas", 0);
     glActiveTexture(GL_TEXTURE0);
@@ -319,7 +309,9 @@ int main() {
             ImGui::Begin("Painel de Debug"); // Cria uma janela chamada "Painel de Debug"
             
             ImGui::Text(debug.camInfo.c_str());
-            ImGui::Text(debug.chunkInfo.c_str());
+            ImGui::Text(debug.chunkSolidInfo.c_str());
+            ImGui::Text(debug.chunkTransInfo.c_str());
+            ImGui::Text(debug.chunkWaterInfo.c_str());
             if (temp_chunk != nullptr) {
                 bool chunkState = (*temp_chunk).isModified();
                 if (chunkState) {
@@ -414,7 +406,8 @@ int main() {
         if (rcResult.hit) {
             world.highlight(borderShaderProgram, rcResult.blockPos, camera.getProj(), camera.getView());
         }
-        debug.drawChunkGrid(camera, camera.getProj(), camera.getView());
+
+        if (drawGrid) debug.drawChunkGrid(camera, camera.getProj(), camera.getView());
 
         // ============================================================================= 
         // Renderização da janela de depuração

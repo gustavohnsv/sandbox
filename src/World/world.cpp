@@ -237,7 +237,8 @@ void World::addBlock(const Vec3i &pos, int type, bool isPlayerAction) {
         int localZ = pos.z - chunkPos.z * CHUNK_DEPTH;
         chunk->setBlock(localX, localY, localZ, type, isPlayerAction);
         chunk->updateHeightMap();
-        chunk->buildMesh((*this), chunkPos);
+        chunk->buildSolidMesh((*this), chunkPos);
+        chunk->buildTransMesh((*this), chunkPos);
         chunk->buildWaterMesh((*this), chunkPos);
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
@@ -261,7 +262,8 @@ void World::removeBlock(const Vec3i &pos) {
         int localZ = pos.z - chunkPos.z * CHUNK_DEPTH;
         chunk->setBlock(localX, localY, localZ, 0, true);
         chunk->updateHeightMap();
-        chunk->buildMesh((*this), chunkPos);
+        chunk->buildSolidMesh((*this), chunkPos);
+        chunk->buildTransMesh((*this), chunkPos);
         chunk->buildWaterMesh((*this), chunkPos);
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
@@ -275,7 +277,7 @@ void World::removeBlock(const Vec3i &pos) {
 }
 
 void World::update(const glm::vec3 &pos, const glm::mat4 &view, const glm::mat4 &proj) {
-    int renderDistance = 5;
+    int renderDistance = 7;
 
     int playerChunkX = static_cast<int>(floor(pos.x / CHUNK_WIDTH));
     int playerChunkZ = static_cast<int>(floor(pos.z / CHUNK_DEPTH));
@@ -319,9 +321,9 @@ void World::update(const glm::vec3 &pos, const glm::mat4 &view, const glm::mat4 
         }
 
         if (allNeighborsExist(chunkPos)) {
-            Profiler::measure("decorateChunk()", [&]() {
+            //Profiler::measure("decorateChunk()", [&]() {
                 decorateChunk(chunkPos); // Fase 2
-            });
+            //});
             
             // Após decorar, o chunk e seus vizinhos precisam ter a malha reconstruída
             for (int dx = -1; dx <= 1; dx++) {
@@ -341,9 +343,9 @@ void World::update(const glm::vec3 &pos, const glm::mat4 &view, const glm::mat4 
     }
     
     // Atualiza iluminação dos chunks pendentes
-    //Profiler::measure("World::updateChunkLighing()", [&]() {
+    // Profiler::measure("World::updateChunkLighing()", [&]() {
         updateChunkLighting();
-    //});
+    // });
 
     // FASE 3: Descarregamento de chunks distantes
     std::vector<Vec3i> chunksToUnload;
@@ -382,8 +384,10 @@ void World::updateChunkLighting() {
             if (canCalculateLighting) {
                 Chunk& chunk = it->second;
                 chunk.updateHeightMap();
-                chunk.buildMesh((*this), chunkPos);
+                chunk.buildSolidMesh((*this), chunkPos);
+                chunk.buildTransMesh((*this), chunkPos);
                 chunk.buildWaterMesh((*this), chunkPos);
+                chunk.buildCrossMesh((*this), chunkPos);
                 completedChunks.push_back(chunkPos);
                 chunksBuiltThisFrame++;
             }
@@ -437,13 +441,13 @@ void World::generateChunkTerrain(Chunk &chunk, Vec3i chunkPos) {
                 weights[i] /= totalWeight;
             }
 
-            if (bx == 0 && bz == 0) {
-                std::cout << "--- Chunk [" << chunkPos.x << ", " << chunkPos.z << "] ---" << std::endl;
-                std::cout << "Valores de Ruido: Temp=" << tempValue << ", Umid=" << humidityValue << std::endl;
-                for (int i = 0; i < biomes.size(); i++) {
-                    std::cout << "  - Bioma: " << biomes[i].name << ", Peso: " << weights[i] << std::endl;
-                }
-            }
+            // if (bx == 0 && bz == 0) {
+            //     std::cout << "--- Chunk [" << chunkPos.x << ", " << chunkPos.z << "] ---" << std::endl;
+            //     std::cout << "Valores de Ruido: Temp=" << tempValue << ", Umid=" << humidityValue << std::endl;
+            //     for (int i = 0; i < biomes.size(); i++) {
+            //         std::cout << "  - Bioma: " << biomes[i].name << ", Peso: " << weights[i] << std::endl;
+            //     }
+            // }
 
             float finalHeight = 0.0f;
 
@@ -509,12 +513,19 @@ void World::decorateChunk(Vec3i chunkPos) {
             
             float worldX = (chunkPos.x * CHUNK_WIDTH) + bx;
             float worldZ = (chunkPos.z * CHUNK_DEPTH) + bz;
+            int surfaceY = chunk.getHeightValue(bx, bz);
 
             // 1. Pega o "potencial" deste ponto.
-            float noiseValue = structuresNoise.GetNoise(worldX, worldZ);
+            float structureNoise = structuresNoise.GetNoise(worldX, worldZ);
+
+            if (structureNoise > 0.3f) {
+                int odd = rand() % 10;
+                if (odd >= 8) structureDatabase.placeStructure(ID_FLOR, (*this), Vec3i{(int)worldX, surfaceY, (int)worldZ});
+                else if (odd >= 6 && odd < 8) structureDatabase.placeStructure(ID_ARBUSTO, (*this), Vec3i{(int)worldX, surfaceY, (int)worldZ});
+            }
 
             // 2. Se o potencial for baixo, ignora rapidamente.
-            if (noiseValue < treeThreshold) {
+            if (structureNoise < treeThreshold) {
                 continue;
             }
 
@@ -525,7 +536,7 @@ void World::decorateChunk(Vec3i chunkPos) {
                     if (dx == 0 && dz == 0) continue; // Não comparar consigo mesmo
 
                     float neighborNoise = structuresNoise.GetNoise(worldX + dx, worldZ + dz);
-                    if (neighborNoise > noiseValue) {
+                    if (neighborNoise > structureNoise) {
                         isPeak = false; // Encontrou um vizinho com maior potencial
                         break;
                     }
@@ -535,12 +546,13 @@ void World::decorateChunk(Vec3i chunkPos) {
 
             // 4. Se este ponto for o "pico" local, ele é um candidato perfeito para uma árvore!
             if (isPeak) {
-                int surfaceY = chunk.getHeightValue(bx, bz);
                 if (surfaceY != -1) {
-                    int blockType = chunk.getBlock(bx, surfaceY, bz);
-                    if (blockType == ID_GRAMA || blockType == ID_GRAMA_NEVE) {
+                    int surfaceBlockType = chunk.getBlock(bx, surfaceY, bz);
+                    if (surfaceBlockType == ID_GRAMA || surfaceBlockType == ID_GRAMA_NEVE) {
                         // Passa a coordenada GLOBAL para a função de posicionamento
                         structureDatabase.placeStructure(ID_ARVORE, (*this), Vec3i{(int)worldX, surfaceY, (int)worldZ});
+                    } else if (surfaceBlockType == ID_AREIA) {
+                        structureDatabase.placeStructure(ID_CACTUS, (*this), Vec3i{(int)worldX, surfaceY, (int)worldZ});
                     }
                 }
             }
@@ -579,12 +591,56 @@ void World::draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &v
                     glm::mat4 model = glm::mat4(1.0f);
                     model = glm::translate(model, glm::vec3(pos.x * CHUNK_WIDTH, pos.y * CHUNK_HEIGHT, pos.z * CHUNK_DEPTH));
                     shader.setMat4("model", model);
-                    chunk.draw();
+                    chunk.drawSolid();
                 }
             }
         }
     }
 
+    for (int i = playerChunkX - renderDistance; i <= playerChunkX + renderDistance; i++) {
+        for (int j = playerChunkZ - renderDistance; j <= playerChunkZ + renderDistance; j++) {
+            Vec3i pos = {i, 0, j};
+            
+            // Tenta encontrar o chunk no mapa
+            auto it = world.find(pos);
+            if (it != world.end()) {
+                // Se o chunk existe, desenha ele
+                glm::vec3 minPos = {pos.x * CHUNK_WIDTH, pos.y * CHUNK_HEIGHT, pos.z * CHUNK_DEPTH};
+                glm::vec3 maxPos = {(pos.x * CHUNK_WIDTH) + CHUNK_WIDTH, (pos.y * CHUNK_HEIGHT) + CHUNK_HEIGHT, (pos.z * CHUNK_DEPTH) + CHUNK_DEPTH};
+                AABB chunkAABB = {minPos, maxPos};
+                if (frustum.isBoxInFrustum(chunkAABB)) {
+                    Chunk& chunk = it->second;
+                    glm::mat4 model = glm::mat4(1.0f);
+                    model = glm::translate(model, glm::vec3(pos.x * CHUNK_WIDTH, pos.y * CHUNK_HEIGHT, pos.z * CHUNK_DEPTH));
+                    shader.setMat4("model", model);
+                    chunk.drawTrans();
+                }
+            }
+        }
+    }
+
+    for (int i = playerChunkX - renderDistance; i <= playerChunkX + renderDistance; i++) {
+        for (int j = playerChunkZ - renderDistance; j <= playerChunkZ + renderDistance; j++) {
+            Vec3i pos = {i, 0, j};
+            
+            // Tenta encontrar o chunk no mapa
+            auto it = world.find(pos);
+            if (it != world.end()) {
+                // Se o chunk existe, desenha ele
+                glm::vec3 minPos = {pos.x * CHUNK_WIDTH, pos.y * CHUNK_HEIGHT, pos.z * CHUNK_DEPTH};
+                glm::vec3 maxPos = {(pos.x * CHUNK_WIDTH) + CHUNK_WIDTH, (pos.y * CHUNK_HEIGHT) + CHUNK_HEIGHT, (pos.z * CHUNK_DEPTH) + CHUNK_DEPTH};
+                AABB chunkAABB = {minPos, maxPos};
+                if (frustum.isBoxInFrustum(chunkAABB)) {
+                    Chunk& chunk = it->second;
+                    glm::mat4 model = glm::mat4(1.0f);
+                    model = glm::translate(model, glm::vec3(pos.x * CHUNK_WIDTH, pos.y * CHUNK_HEIGHT, pos.z * CHUNK_DEPTH));
+                    shader.setMat4("model", model);
+                    chunk.drawCross();
+                }
+            }
+        }
+    }
+    
     glDepthMask(GL_FALSE);
     for (int i = playerChunkX - renderDistance; i <= playerChunkX + renderDistance; i++) {
         for (int j = playerChunkZ - renderDistance; j <= playerChunkZ + renderDistance; j++) {

@@ -127,14 +127,24 @@ void Debugger::updateCamInfo(const Camera &camera) {
 }
 
 void Debugger::updateChunkInfo(const Chunk &chunk) {
-    std::stringstream ss;
-    ss.precision(2);
+    std::stringstream ss1, ss2, ss3;
+    ss1.precision(2);
+    ss2.precision(2);
+    ss3.precision(2);
     if (&chunk != nullptr) {
-        ss << "Quantidade de malhas da chunk atual: " << chunk.getCount();
-        chunkInfo = ss.str();
+        ss1 << "Quantidade de malhas da chunk atual: " << chunk.getSolidCount();
+        ss2 << "Quantidade de malhas (translúcidas) da chunk atual: " << chunk.getTransCount();
+        ss3 << "Quantidade de malhas (de água) da chunk atual: " << chunk.getWaterCount();
+        chunkSolidInfo = ss1.str();
+        chunkTransInfo = ss2.str();
+        chunkWaterInfo = ss3.str();
     } else {
-        ss << "Quantidade de malhas da chunk atual: 0";
-        chunkInfo = ss.str();
+        ss1 << "Quantidade de malhas da chunk atual: 0";
+        ss2 << "Quantidade de malhas (translúcidas) da chunk atual: 0";
+        ss3 << "Quantidade de malhas (de água) dachunk atual: 0";
+        chunkSolidInfo = ss1.str();
+        chunkTransInfo = ss2.str();
+        chunkWaterInfo = ss3.str();
     }
 }
 // talvez inútil pois ImGui já oferece uma função sofisticada para FPS

@@ -18,7 +18,9 @@ class Debugger {
     std::string blockTypeInfo = "Tipo atual do bloco: [N/A]";
     std::string seedInfo = "Semente atual do mundo: [N/A]";
     std::string fpsInfo = "FPS: [Calculando...]";
-    std::string chunkInfo = "Quantidade de malhas da chunk atual: [Calculando...]";
+    std::string chunkSolidInfo = "Quantidade de malhas (sólidas) da chunk atual: [Calculando...]";
+    std::string chunkTransInfo = "Quantidade de malhas (translúcidas) da chunk atual: [Calculando...]";
+    std::string chunkWaterInfo = "Quantidade de malhas (de água) da chunk atual: [Calculando...]";
     
     Debugger();
     void updateBlockInfo(const World &world, const Vec3i pos);
