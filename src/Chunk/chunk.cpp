@@ -20,6 +20,29 @@ Chunk::Chunk() {
     modified = false;
 }
 
+Chunk::~Chunk() {
+    if (solid_VAO != 0) {
+        glDeleteBuffers(1, &solid_VBO);
+        glDeleteVertexArrays(1, &solid_VAO);
+        check();
+    }
+    if (trans_VAO != 0) {
+        glDeleteBuffers(1, &trans_VBO);
+        glDeleteVertexArrays(1, &trans_VAO);
+        check();
+    }
+    if (cross_VAO != 0) {
+        glDeleteBuffers(1, &cross_VBO);
+        glDeleteVertexArrays(1, &cross_VAO);
+        check();
+    }
+    if (water_VAO != 0) {
+        glDeleteBuffers(1, &water_VBO);
+        glDeleteVertexArrays(1, &water_VAO);
+        check();
+    }
+}
+
 bool Chunk::saveFile(const std::string &filepath) const {
     std::ofstream output(filepath, std::ios::binary);
     if (!output) {
@@ -85,6 +108,7 @@ void Chunk::buildSolidMesh(const World &world, const Vec3i &chunkPos) {
         glEnableVertexAttribArray(4);
 
         glBindVertexArray(0);
+        check();
     }
     std::vector<float> mesh;
     float baseLight = 0.5f;
@@ -98,12 +122,19 @@ void Chunk::buildSolidMesh(const World &world, const Vec3i &chunkPos) {
                 int globalY = chunkPos.y * CHUNK_HEIGHT + y;
                 int globalZ = chunkPos.z * CHUNK_DEPTH + z;
                 const Block &blockInfo = world.getBlockInfo(type);
-                float atlasW = 1024.0f;
-                float atlasH = 512.0f;
-                float tileW = 16.0f;
-                float tileH = 16.0f;
-                float uv_x_step = tileW / atlasW;
-                float uv_y_step = tileH / atlasH;
+                const float atlasW = 1024.0f;
+                const float atlasH = 512.0f;
+                const float tileW = 16.0f;
+                const float tileH = 16.0f;
+                const float uv_x_step = tileW / atlasW;
+                const float uv_y_step = tileH / atlasH;
+
+                const float minX = x + blockInfo.minBounds.x;
+                const float minY = y + blockInfo.minBounds.y;
+                const float minZ = z + blockInfo.minBounds.z;
+                const float maxX = x + blockInfo.maxBounds.x;
+                const float maxY = y + blockInfo.maxBounds.y;
+                const float maxZ = z + blockInfo.maxBounds.z;
 
                 // FACE CIMA (+Y) - verificar bloco acima
                 int blockAbove = world.getBlockType(Vec3i{globalX, globalY + 1, globalZ});
@@ -119,14 +150,12 @@ void Chunk::buildSolidMesh(const World &world, const Vec3i &chunkPos) {
                         float faceLight = world.isExposedToSky(globalX, globalY + 1, globalZ) ? 1.0 : baseLight;
                         if (type == ID_PEDRA) faceLight -= 0.4; 
                         mesh.insert(mesh.end(), {
-                            // Triângulo 1
-                            x - offset, y + offset, z - offset,   0.0f, 1.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
-                            x + offset, y + offset, z - offset,   0.0f, 1.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
-                            x + offset, y + offset, z + offset,   0.0f, 1.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
-                            // Triângulo 2
-                            x + offset, y + offset, z + offset,   0.0f, 1.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
-                            x - offset, y + offset, z + offset,   0.0f, 1.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
-                            x - offset, y + offset, z - offset,   0.0f, 1.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
+                            minX, maxY, minZ,   0.0f, 1.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
+                            maxX, maxY, minZ,   0.0f, 1.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
+                            maxX, maxY, maxZ,   0.0f, 1.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
+                            maxX, maxY, maxZ,   0.0f, 1.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
+                            minX, maxY, maxZ,   0.0f, 1.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
+                            minX, maxY, minZ,   0.0f, 1.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
                             });
                 }
 
@@ -144,14 +173,12 @@ void Chunk::buildSolidMesh(const World &world, const Vec3i &chunkPos) {
                         float faceLight = world.isExposedToSky(globalX, globalY - 1, globalZ) ? 0.7 : baseLight;
                         if (type == ID_PEDRA) faceLight -= 0.4;
                         mesh.insert(mesh.end(), {
-                            // Triângulo 1
-                            x - offset, y - offset, z - offset,   0.0f, -1.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
-                            x + offset, y - offset, z + offset,   0.0f, -1.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
-                            x + offset, y - offset, z - offset,   0.0f, -1.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
-                            // Triângulo 2
-                            x + offset, y - offset, z + offset,   0.0f, -1.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
-                            x - offset, y - offset, z - offset,   0.0f, -1.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
-                            x - offset, y - offset, z + offset,   0.0f, -1.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
+                            minX, minY, minZ,   0.0f, -1.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
+                            maxX, minY, maxZ,   0.0f, -1.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
+                            maxX, minY, minZ,   0.0f, -1.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
+                            maxX, minY, maxZ,   0.0f, -1.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
+                            minX, minY, minZ,   0.0f, -1.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
+                            minX, minY, maxZ,   0.0f, -1.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
                         });
                 }
                 
@@ -169,14 +196,12 @@ void Chunk::buildSolidMesh(const World &world, const Vec3i &chunkPos) {
                         float faceLight = world.isExposedToSky(globalX + 1, globalY, globalZ) ? 0.866 : baseLight;
                         if (type == ID_PEDRA) faceLight -= 0.4;
                         mesh.insert(mesh.end(), {
-                            // Triângulo 1
-                            x + offset, y - offset, z - offset,   1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
-                            x + offset, y - offset, z + offset,   1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
-                            x + offset, y + offset, z + offset,   1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
-                            // Triângulo 2
-                            x + offset, y + offset, z + offset,   1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
-                            x + offset, y + offset, z - offset,   1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
-                            x + offset, y - offset, z - offset,   1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
+                            maxX, minY, minZ,   1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
+                            maxX, minY, maxZ,   1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
+                            maxX, maxY, maxZ,   1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
+                            maxX, maxY, maxZ,   1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
+                            maxX, maxY, minZ,   1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
+                            maxX, minY, minZ,   1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
                         });
                 }
                 
@@ -194,14 +219,12 @@ void Chunk::buildSolidMesh(const World &world, const Vec3i &chunkPos) {
                         float faceLight = world.isExposedToSky(globalX - 1, globalY, globalZ) ? 0.86 : baseLight;
                         if (type == ID_PEDRA) faceLight -= 0.4;
                         mesh.insert(mesh.end(), {
-                            // Triângulo 1
-                            x - offset, y - offset, z - offset,  -1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
-                            x - offset, y + offset, z + offset,  -1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
-                            x - offset, y - offset, z + offset,  -1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
-                            // Triângulo 2
-                            x - offset, y + offset, z + offset,  -1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
-                            x - offset, y - offset, z - offset,  -1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
-                            x - offset, y + offset, z - offset,  -1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
+                            minX, minY, minZ,  -1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
+                            minX, maxY, maxZ,  -1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
+                            minX, minY, maxZ,  -1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
+                            minX, maxY, maxZ,  -1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
+                            minX, minY, minZ,  -1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
+                            minX, maxY, minZ,  -1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
                         });
                 }
                 
@@ -219,14 +242,12 @@ void Chunk::buildSolidMesh(const World &world, const Vec3i &chunkPos) {
                         float faceLight = world.isExposedToSky(globalX, globalY, globalZ + 1) ? 0.86 : baseLight;
                         if (type == ID_PEDRA) faceLight -= 0.4;
                         mesh.insert(mesh.end(), {
-                            // Triângulo 1
-                            x - offset, y - offset, z + offset,   0.0f, 0.0f, 1.0f,   (float)type,   u_max, v_max,   faceLight,
-                            x + offset, y - offset, z + offset,   0.0f, 0.0f, 1.0f,   (float)type,   u_min, v_max,   faceLight,
-                            x + offset, y + offset, z + offset,   0.0f, 0.0f, 1.0f,   (float)type,   u_min, v_min,   faceLight,
-                            // Triângulo 2
-                            x + offset, y + offset, z + offset,   0.0f, 0.0f, 1.0f,   (float)type,   u_min, v_min,   faceLight,
-                            x - offset, y + offset, z + offset,   0.0f, 0.0f, 1.0f,   (float)type,   u_max, v_min,   faceLight,
-                            x - offset, y - offset, z + offset,   0.0f, 0.0f, 1.0f,   (float)type,   u_max, v_max,   faceLight,
+                            minX, minY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,   u_max, v_max,   faceLight,
+                            maxX, minY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,   u_min, v_max,   faceLight,
+                            maxX, maxY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,   u_min, v_min,   faceLight,
+                            maxX, maxY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,   u_min, v_min,   faceLight,
+                            minX, maxY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,   u_max, v_min,   faceLight,
+                            minX, minY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,   u_max, v_max,   faceLight,
                         });
                 }
                 
@@ -244,14 +265,12 @@ void Chunk::buildSolidMesh(const World &world, const Vec3i &chunkPos) {
                         float faceLight = world.isExposedToSky(globalX, globalY, globalZ - 1) ? 0.86 : baseLight;
                         if (type == ID_PEDRA) faceLight -= 0.4;
                         mesh.insert(mesh.end(), {
-                            // Triângulo 1
-                            x - offset, y - offset, z - offset,   0.0f, 0.0f, -1.0f,   (float)type,   u_min, v_max,   faceLight,
-                            x + offset, y + offset, z - offset,   0.0f, 0.0f, -1.0f,   (float)type,   u_max, v_min,   faceLight,
-                            x + offset, y - offset, z - offset,   0.0f, 0.0f, -1.0f,   (float)type,   u_max, v_max,   faceLight,
-                            // Triângulo 2
-                            x + offset, y + offset, z - offset,   0.0f, 0.0f, -1.0f,   (float)type,   u_max, v_min,   faceLight,
-                            x - offset, y - offset, z - offset,   0.0f, 0.0f, -1.0f,   (float)type,   u_min, v_max,   faceLight,
-                            x - offset, y + offset, z - offset,   0.0f, 0.0f, -1.0f,   (float)type,   u_min, v_min,   faceLight,
+                            minX, minY, minZ,   0.0f, 0.0f, -1.0f,   (float)type,   u_min, v_max,   faceLight,
+                            maxX, maxY, minZ,   0.0f, 0.0f, -1.0f,   (float)type,   u_max, v_min,   faceLight,
+                            maxX, minY, minZ,   0.0f, 0.0f, -1.0f,   (float)type,   u_max, v_max,   faceLight,
+                            maxX, maxY, minZ,   0.0f, 0.0f, -1.0f,   (float)type,   u_max, v_min,   faceLight,
+                            minX, minY, minZ,   0.0f, 0.0f, -1.0f,   (float)type,   u_min, v_max,   faceLight,
+                            minX, maxY, minZ,   0.0f, 0.0f, -1.0f,   (float)type,   u_min, v_min,   faceLight,
                         });
                 }
             }
@@ -261,6 +280,7 @@ void Chunk::buildSolidMesh(const World &world, const Vec3i &chunkPos) {
         solidCount = mesh.size() / 10;
         glBindBuffer(GL_ARRAY_BUFFER, solid_VBO);
         glBufferData(GL_ARRAY_BUFFER, mesh.size() * sizeof(float), mesh.data(), GL_STATIC_DRAW);
+        check();
     } else {
         solidCount = 0;
     }
@@ -292,6 +312,7 @@ void Chunk::buildTransMesh(const World &world, const Vec3i &chunkPos) {
         glEnableVertexAttribArray(4);
 
         glBindVertexArray(0);
+        check();
     }
     std::vector<float> mesh;
     float baseLight = 0.1;
@@ -305,12 +326,19 @@ void Chunk::buildTransMesh(const World &world, const Vec3i &chunkPos) {
                 int globalY = chunkPos.y * CHUNK_HEIGHT + y;
                 int globalZ = chunkPos.z * CHUNK_DEPTH + z;
                 const Block &blockInfo = world.getBlockInfo(type);
-                float atlasW = 1024.0f;
-                float atlasH = 512.0f;
-                float tileW = 16.0f;
-                float tileH = 16.0f;
-                float uv_x_step = tileW / atlasW;
-                float uv_y_step = tileH / atlasH;
+                const float atlasW = 1024.0f;
+                const float atlasH = 512.0f;
+                const float tileW = 16.0f;
+                const float tileH = 16.0f;
+                const float uv_x_step = tileW / atlasW;
+                const float uv_y_step = tileH / atlasH;
+
+                const float minX = x + blockInfo.minBounds.x;
+                const float minY = y + blockInfo.minBounds.y;
+                const float minZ = z + blockInfo.minBounds.z;
+                const float maxX = x + blockInfo.maxBounds.x;
+                const float maxY = y + blockInfo.maxBounds.y;
+                const float maxZ = z + blockInfo.maxBounds.z;
 
                 // FACE CIMA (+Y) - verificar bloco acima
                 int blockAbove = world.getBlockType(Vec3i{globalX, globalY + 1, globalZ});
@@ -322,14 +350,12 @@ void Chunk::buildTransMesh(const World &world, const Vec3i &chunkPos) {
                     float v_max = v_min + uv_y_step;
                     float faceLight = world.isExposedToSky(globalX, globalY + 1, globalZ) ? 1.0 : baseLight;
                     mesh.insert(mesh.end(), {
-                        // Triângulo 1
-                        x - offset, y + offset, z - offset,   0.0f, 1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
-                        x + offset, y + offset, z - offset,   0.0f, 1.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
-                        x + offset, y + offset, z + offset,   0.0f, 1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
-                        // Triângulo 2
-                        x + offset, y + offset, z + offset,   0.0f, 1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
-                        x - offset, y + offset, z + offset,   0.0f, 1.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
-                        x - offset, y + offset, z - offset,   0.0f, 1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        minX, maxY, minZ,   0.0f, 1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        maxX, maxY, minZ,   0.0f, 1.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
+                        maxX, maxY, maxZ,   0.0f, 1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        maxX, maxY, maxZ,   0.0f, 1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        minX, maxY, maxZ,   0.0f, 1.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
+                        minX, maxY, minZ,   0.0f, 1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
                     });
                 }
 
@@ -343,14 +369,12 @@ void Chunk::buildTransMesh(const World &world, const Vec3i &chunkPos) {
                     float v_max = v_min + uv_y_step;
                     float faceLight = world.isExposedToSky(globalX, globalY - 1, globalZ) ? 0.5 : baseLight;
                     mesh.insert(mesh.end(), {
-                        // Triângulo 1
-                        x - offset, y - offset, z - offset,   0.0f,-1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
-                        x + offset, y - offset, z + offset,   0.0f,-1.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
-                        x + offset, y - offset, z - offset,   0.0f,-1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
-                        // Triângulo 2                        
-                        x + offset, y - offset, z + offset,   0.0f,-1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
-                        x - offset, y - offset, z - offset,   0.0f,-1.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
-                        x - offset, y - offset, z + offset,   0.0f,-1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        minX, minY, minZ,   0.0f,-1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        maxX, minY, maxZ,   0.0f,-1.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
+                        maxX, minY, minZ,   0.0f,-1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,                        
+                        maxX, minY, maxZ,   0.0f,-1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        minX, minY, minZ,   0.0f,-1.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
+                        minX, minY, maxZ,   0.0f,-1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
                     });
                 }
                 
@@ -364,14 +388,12 @@ void Chunk::buildTransMesh(const World &world, const Vec3i &chunkPos) {
                     float v_max = v_min + uv_y_step;
                     float faceLight = world.isExposedToSky(globalX + 1, globalY, globalZ) ? 0.8 : baseLight;
                     mesh.insert(mesh.end(), {
-                        // Triângulo 1
-                        x + offset, y - offset, z - offset,   1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
-                        x + offset, y - offset, z + offset,   1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
-                        x + offset, y + offset, z + offset,   1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
-                        // Triângulo 2
-                        x + offset, y + offset, z + offset,   1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
-                        x + offset, y + offset, z - offset,   1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
-                        x + offset, y - offset, z - offset,   1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        maxX, minY, minZ,   1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        maxX, minY, maxZ,   1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
+                        maxX, maxY, maxZ,   1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        maxX, maxY, maxZ,   1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        maxX, maxY, minZ,   1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
+                        maxX, minY, minZ,   1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
                     });
                 }
                 
@@ -385,14 +407,12 @@ void Chunk::buildTransMesh(const World &world, const Vec3i &chunkPos) {
                     float v_max = v_min + uv_y_step;
                     float faceLight = world.isExposedToSky(globalX - 1, globalY, globalZ) ? 0.8 : baseLight;
                     mesh.insert(mesh.end(), {
-                        // Triângulo 1
-                        x - offset, y - offset, z - offset,  -1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
-                        x - offset, y + offset, z + offset,  -1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
-                        x - offset, y - offset, z + offset,  -1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
-                        // Triângulo 2
-                        x - offset, y + offset, z + offset,  -1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
-                        x - offset, y - offset, z - offset,  -1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
-                        x - offset, y + offset, z - offset,  -1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
+                        minX, minY, minZ,  -1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        minX, maxY, maxZ,  -1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        minX, minY, maxZ,  -1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
+                        minX, maxY, maxZ,  -1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        minX, minY, minZ,  -1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        minX, maxY, minZ,  -1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
                     });
                 }
                 
@@ -406,14 +426,12 @@ void Chunk::buildTransMesh(const World &world, const Vec3i &chunkPos) {
                     float v_max = v_min + uv_y_step;
                     float faceLight = world.isExposedToSky(globalX, globalY, globalZ + 1) ? 0.8 : baseLight;
                     mesh.insert(mesh.end(), {
-                        // Triângulo 1
-                        x - offset, y - offset, z + offset,   0.0f, 0.0f, 1.0f,   (float)type,        u_min, v_max,     faceLight,
-                        x + offset, y - offset, z + offset,   0.0f, 0.0f, 1.0f,   (float)type,        u_max, v_max,     faceLight,
-                        x + offset, y + offset, z + offset,   0.0f, 0.0f, 1.0f,   (float)type,        u_max, v_min,     faceLight,
-                        // Triângulo 2
-                        x + offset, y + offset, z + offset,   0.0f, 0.0f, 1.0f,   (float)type,        u_max, v_min,     faceLight,
-                        x - offset, y + offset, z + offset,   0.0f, 0.0f, 1.0f,   (float)type,        u_min, v_min,     faceLight,
-                        x - offset, y - offset, z + offset,   0.0f, 0.0f, 1.0f,   (float)type,        u_min, v_max,     faceLight,
+                        minX, minY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,        u_min, v_max,     faceLight,
+                        maxX, minY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,        u_max, v_max,     faceLight,
+                        maxX, maxY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,        u_max, v_min,     faceLight,
+                        maxX, maxY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,        u_max, v_min,     faceLight,
+                        minX, maxY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,        u_min, v_min,     faceLight,
+                        minX, minY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,        u_min, v_max,     faceLight,
                     });
                 }
                 
@@ -427,14 +445,12 @@ void Chunk::buildTransMesh(const World &world, const Vec3i &chunkPos) {
                     float v_max = v_min + uv_y_step;
                     float faceLight = world.isExposedToSky(globalX, globalY, globalZ - 1) ? 0.8 : baseLight;
                     mesh.insert(mesh.end(), {
-                        // Triângulo 1
-                        x - offset, y - offset, z - offset,   0.0f, 0.0f,-1.0f,   (float)type,        u_max, v_max,     faceLight,
-                        x + offset, y + offset, z - offset,   0.0f, 0.0f,-1.0f,   (float)type,        u_min, v_min,     faceLight,
-                        x + offset, y - offset, z - offset,   0.0f, 0.0f,-1.0f,   (float)type,        u_min, v_max,     faceLight,
-                        // Triângulo 2
-                        x + offset, y + offset, z - offset,   0.0f, 0.0f,-1.0f,   (float)type,        u_min, v_min,     faceLight,
-                        x - offset, y - offset, z - offset,   0.0f, 0.0f,-1.0f,   (float)type,        u_max, v_max,     faceLight,
-                        x - offset, y + offset, z - offset,   0.0f, 0.0f,-1.0f,   (float)type,        u_max, v_min,     faceLight,
+                        minX, minY, minZ,   0.0f, 0.0f,-1.0f,   (float)type,        u_max, v_max,     faceLight,
+                        maxX, maxY, minZ,   0.0f, 0.0f,-1.0f,   (float)type,        u_min, v_min,     faceLight,
+                        maxX, minY, minZ,   0.0f, 0.0f,-1.0f,   (float)type,        u_min, v_max,     faceLight,
+                        maxX, maxY, minZ,   0.0f, 0.0f,-1.0f,   (float)type,        u_min, v_min,     faceLight,
+                        minX, minY, minZ,   0.0f, 0.0f,-1.0f,   (float)type,        u_max, v_max,     faceLight,
+                        minX, maxY, minZ,   0.0f, 0.0f,-1.0f,   (float)type,        u_max, v_min,     faceLight,
                     });
                 }
             }
@@ -444,6 +460,7 @@ void Chunk::buildTransMesh(const World &world, const Vec3i &chunkPos) {
         transCount = mesh.size() / 10;
         glBindBuffer(GL_ARRAY_BUFFER, trans_VBO);
         glBufferData(GL_ARRAY_BUFFER, mesh.size() * sizeof(float), mesh.data(), GL_STATIC_DRAW);
+        check();
     } else {
         transCount = 0;
     }
@@ -475,6 +492,7 @@ void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
         glEnableVertexAttribArray(4);
 
         glBindVertexArray(0);
+        check();
     }
     std::vector<float> mesh;
     float baseLight = 0.1;
@@ -627,6 +645,7 @@ void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
         waterCount = mesh.size() / 10;
         glBindBuffer(GL_ARRAY_BUFFER, water_VBO);
         glBufferData(GL_ARRAY_BUFFER, mesh.size() * sizeof(float), mesh.data(), GL_STATIC_DRAW);
+        check();
     } else {
         waterCount = 0;
     }
@@ -635,7 +654,10 @@ void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
 void Chunk::buildCrossMesh(const World &world, const Vec3i &chunkPos) {
 if (cross_VAO == 0) {
         glGenVertexArrays(1, &cross_VAO);
+        check();
+
         glGenBuffers(1, &cross_VBO);
+        check();
 
         glBindVertexArray(cross_VAO);
         glBindBuffer(GL_ARRAY_BUFFER, cross_VBO);
@@ -654,6 +676,7 @@ if (cross_VAO == 0) {
         glEnableVertexAttribArray(4);
 
         glBindVertexArray(0);
+        check();
     }
     
     std::vector<float> mesh;
@@ -739,6 +762,7 @@ if (cross_VAO == 0) {
         crossCount = mesh.size() / 10;
         glBindBuffer(GL_ARRAY_BUFFER, cross_VBO);
         glBufferData(GL_ARRAY_BUFFER, mesh.size() * sizeof(float), mesh.data(), GL_STATIC_DRAW);
+        check();
     } else {
         crossCount = 0;
     }
@@ -749,6 +773,7 @@ void Chunk::drawSolid() {
     glBindVertexArray(solid_VAO);
     glDrawArrays(GL_TRIANGLES, 0, solidCount);
     glBindVertexArray(0);
+    check();
 }
 
 
@@ -757,6 +782,7 @@ void Chunk::drawTrans() {
     glBindVertexArray(trans_VAO);
     glDrawArrays(GL_TRIANGLES, 0, transCount);
     glBindVertexArray(0);
+    check();
 }
 
 
@@ -765,6 +791,7 @@ void Chunk::drawWater() {
     glBindVertexArray(water_VAO);
     glDrawArrays(GL_TRIANGLES, 0, waterCount);
     glBindVertexArray(0);
+    check();
 }
 
 void Chunk::drawCross() {
@@ -772,6 +799,7 @@ void Chunk::drawCross() {
     glBindVertexArray(cross_VAO);
     glDrawArrays(GL_TRIANGLES, 0, crossCount);
     glBindVertexArray(0);
+    check();
 }
 
 void Chunk::setBlock(int x, int y, int z, int type, bool isPlayerAction) {
@@ -822,5 +850,5 @@ bool Chunk::isModified() const {
 }
 
 void Chunk::check() {
-    return;
+    checkOpenGLError();
 }

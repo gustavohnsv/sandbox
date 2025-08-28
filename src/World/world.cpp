@@ -175,6 +175,14 @@ World::World(const Blocks &blocks, const Structures &structures) {
     check();
 }
 
+World::~World() {
+    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &border_VBO);
+    glDeleteVertexArrays(1, &border_VAO);
+    check();
+}
+
 void World::create() {
     return;
 }
@@ -240,6 +248,7 @@ void World::addBlock(const Vec3i &pos, int type, bool isPlayerAction) {
         chunk->buildSolidMesh((*this), chunkPos);
         chunk->buildTransMesh((*this), chunkPos);
         chunk->buildWaterMesh((*this), chunkPos);
+        chunk->buildCrossMesh((*this), chunkPos);
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
                 Vec3i neighborPos = {chunkPos.x + dx, chunkPos.y, chunkPos.z + dz};
@@ -265,6 +274,7 @@ void World::removeBlock(const Vec3i &pos) {
         chunk->buildSolidMesh((*this), chunkPos);
         chunk->buildTransMesh((*this), chunkPos);
         chunk->buildWaterMesh((*this), chunkPos);
+        chunk->buildCrossMesh((*this), chunkPos);
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
                 Vec3i neighborPos = {chunkPos.x + dx, chunkPos.y, chunkPos.z + dz};
@@ -321,9 +331,9 @@ void World::update(const glm::vec3 &pos, const glm::mat4 &view, const glm::mat4 
         }
 
         if (allNeighborsExist(chunkPos)) {
-            //Profiler::measure("decorateChunk()", [&]() {
+            Profiler::measure("decorateChunk()", [&]() {
                 decorateChunk(chunkPos); // Fase 2
-            //});
+            });
             
             // Após decorar, o chunk e seus vizinhos precisam ter a malha reconstruída
             for (int dx = -1; dx <= 1; dx++) {
@@ -663,8 +673,8 @@ void World::draw(Shader &shader, const glm::mat4 &projection, const glm::mat4 &v
             }
         }
     }
-
     glDepthMask(GL_TRUE);
+    check();
 }
 
 void World::highlight(Shader &shader, const Vec3i &pos, const glm::mat4 &projection, const glm::mat4 &view) {
@@ -677,6 +687,7 @@ void World::highlight(Shader &shader, const Vec3i &pos, const glm::mat4 &project
     shader.setMat4("transform", transform);
     glDrawArrays(GL_LINES, 0, 24);
     glBindVertexArray(0);
+    check();
 }
 
 bool World::isExposedToSky(int x, int y, int z) const {
@@ -726,5 +737,5 @@ bool World::allNeighborsExist(Vec3i chunkPos) const {
 }
 
 void World::check() {
-    return;
+    checkOpenGLError();
 }

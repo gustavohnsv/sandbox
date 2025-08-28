@@ -8,6 +8,7 @@ class World;
 class Structures {
     public:
         Structures();
+        ~Structures();
         void setBlockAcrossChunks(int type, World &world, const Vec3i &pos);
         void placeStructure(int type, World &world, const Vec3i &pos);
     private:

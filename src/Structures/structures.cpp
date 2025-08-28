@@ -46,6 +46,7 @@ void Structures::setBlockAcrossChunks(int type, World &world, const Vec3i &pos) 
 
 void Structures::placeStructure(int type, World &world, const Vec3i &pos) {
     int surfaceBlockType = world.getBlockType(pos);
+    if (world.getBlockType({pos.x, pos.y+1, pos.z}) != ID_AR) return;
     int offset = 0;
     switch (type) {
         case ID_ARVORE: // Árvore
@@ -60,7 +61,8 @@ void Structures::placeStructure(int type, World &world, const Vec3i &pos) {
                 if (chunk) {
                     int localX = pos.x - chunkPos.x * CHUNK_WIDTH;
                     int localZ = pos.z - chunkPos.z * CHUNK_DEPTH;
-                    for (int i = 0; i < 7; i++) {
+                    setBlockAcrossChunks(ID_TERRA, world, {pos.x, pos.y, pos.z});
+                    for (int i = 1; i < 7; i++) {
                         if (i < 6) {
                             setBlockAcrossChunks(ID_CARVALHO, world, {pos.x, pos.y + i, pos.z});
                         }
@@ -98,15 +100,41 @@ void Structures::placeStructure(int type, World &world, const Vec3i &pos) {
                 if (chunk) {
                     int localX = pos.x - chunkPos.x * CHUNK_WIDTH;
                     int localZ = pos.z - chunkPos.z * CHUNK_DEPTH;
-
-                    for (int i = 0; i < 10; i++) {
-                        chunk->setBlock(localX, pos.y + i, localZ, ID_PINHEIRO, false);
+                    setBlockAcrossChunks(ID_TERRA, world, {pos.x, pos.y, pos.z});
+                    int radius = 4;
+                    for (int i = 1; i < 12; i++) {
+                        if (i == 11) setBlockAcrossChunks(ID_FOLHA_PINHEIRO, world, {pos.x, pos.y+i, pos.z});
+                        else setBlockAcrossChunks(ID_PINHEIRO, world, {pos.x, pos.y+i, pos.z});
+                        if (i > 3 && i % 2 == 0) {
+                            setBlockAcrossChunks(ID_FOLHA_PINHEIRO, world, {pos.x+1, pos.y+i, pos.z});
+                            setBlockAcrossChunks(ID_FOLHA_PINHEIRO, world, {pos.x, pos.y+i, pos.z+1});
+                            setBlockAcrossChunks(ID_FOLHA_PINHEIRO, world, {pos.x-1, pos.y+i, pos.z});
+                            setBlockAcrossChunks(ID_FOLHA_PINHEIRO, world, {pos.x, pos.y+i, pos.z-1});
+                            // setBlockAcrossChunks(ID_FOLHA_PINHEIRO, world, {pos.x+1, pos.y+i, pos.z+1});
+                            // setBlockAcrossChunks(ID_FOLHA_PINHEIRO, world, {pos.x+1, pos.y+i, pos.z-1});
+                            // setBlockAcrossChunks(ID_FOLHA_PINHEIRO, world, {pos.x-1, pos.y+i, pos.z+1});
+                            // setBlockAcrossChunks(ID_FOLHA_PINHEIRO, world, {pos.x-1, pos.y+i, pos.z-1});
+                        }
+                        if (i > 4 && i % 2 == 1 && radius > 1) {
+                            for (int j = -radius; j < radius+1; j++) {
+                                for (int k = -radius; k < radius+1; k++) {
+                                    if (j == 0 && k == 0) continue;
+                                    int d1 = pow((pos.x - pos.x+j), 2);
+                                    int d2 = pow((pos.z - pos.z+k), 2);
+                                    int euclidianDist = sqrt(d1 + d2);
+                                    if (euclidianDist <= radius) {
+                                        setBlockAcrossChunks(ID_FOLHA_PINHEIRO, world, {pos.x+j, pos.y+i, pos.z+k});
+                                    }
+                                }
+                            }
+                            radius--;   
+                        }
                     }
                 }
             }
             break;
         case ID_FLOR:
-            if (surfaceBlockType == ID_GRAMA && world.getBlockType(Vec3i{pos.x, pos.y+1, pos.z}) == ID_AR) {
+            if (surfaceBlockType == ID_GRAMA) {
                 int oddFlower = rand() % 10;
                 switch(oddFlower) {
                     case 0:
@@ -127,12 +155,12 @@ void Structures::placeStructure(int type, World &world, const Vec3i &pos) {
             }
             break;
         case ID_ARBUSTO:
-            if (surfaceBlockType == ID_GRAMA && world.getBlockType(Vec3i{pos.x, pos.y+1, pos.z}) == ID_AR) {
+            if (surfaceBlockType == ID_GRAMA) {
                 setBlockAcrossChunks(ID_GRAMA_BAIXA, world, {pos.x, pos.y+1, pos.z});
             }
             break;
         case ID_CACTUS:
-            if (surfaceBlockType == ID_AREIA && world.getBlockType(Vec3i{pos.x, pos.y+1, pos.z}) == ID_AR) {
+            if (surfaceBlockType == ID_AREIA) {
                 for (int i = 1; i < 4; i++) {
                     setBlockAcrossChunks(ID_CACTO, world, {pos.x, pos.y+i, pos.z});
                 }
@@ -141,6 +169,10 @@ void Structures::placeStructure(int type, World &world, const Vec3i &pos) {
         default:
             break;
     }
+}
+
+Structures::~Structures() {
+    return;
 }
         
 void Structures::check() {

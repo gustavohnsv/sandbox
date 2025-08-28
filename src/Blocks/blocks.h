@@ -16,6 +16,7 @@ BlockRenderType getBlockRenderType(int type);
 class Blocks {
     public:
         Blocks();
+        ~Blocks();
         Block getBlockInfo(int type) const;
         std::map<int, Block> getBlockDatabase() const;
     private:

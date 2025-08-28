@@ -8,6 +8,7 @@ class Texture {
         unsigned int ID;
         
         Texture(const char* texture);
+        ~Texture();
         void bind(unsigned int slot = 0) const;
 
     private:

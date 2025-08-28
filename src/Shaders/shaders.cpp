@@ -32,24 +32,27 @@ Shader::Shader(const char* vertex, const char* frag) {
     glShaderSource(fID, 1, &fSource, NULL);
     glCompileShader(vID);
     glCompileShader(fID);
-    check(vID, "VERTEX");
-    check(fID, "FRAGMENT");
     
     // 3. LINKAR OS SHADERS 
     ID = glCreateProgram();
     glAttachShader(ID, vID);
     glAttachShader(ID, fID);
     glLinkProgram(ID);
-    check(ID, "PROGRAM");
 
     // 4. DELETAR SHADERS
     glDeleteShader(vID);
     glDeleteShader(fID);
+    check();
+}
 
+Shader::~Shader() {
+    // Funções GLFW
+    check();
 }
 
 void Shader::use() {
     glUseProgram(ID);
+    check();
 }
 
 void Shader::setBool(const std::string &name, bool value) const {
@@ -72,6 +75,6 @@ void Shader::setVec3(const std::string &name, float v1, float v2, float v3) cons
     glUniform3f(glGetUniformLocation(ID, name.c_str()), v1, v2, v3);
 }
 
-void Shader::check(unsigned int shader, std::string type) {
-    return;
+void Shader::check() {
+    checkOpenGLError();
 }

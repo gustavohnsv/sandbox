@@ -8,6 +8,7 @@ class Shader {
         unsigned int ID;
     
         Shader(const char* vertex, const char* frag);
+        ~Shader();
         void use(); 
         void setBool(const std::string &name, bool value) const;
         void setInt(const std::string &name, int value) const;
@@ -16,7 +17,7 @@ class Shader {
         void setVec3(const std::string &name, float v1, float v2, float v3) const;
 
     private:
-        void check(unsigned int shader, std::string type);
+        void check();
 };
 
 #endif // SHADERS_H

@@ -98,6 +98,11 @@ Debugger::Debugger() : gridShader("shaders/grid.vert", "shaders/grid.frag") {
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+    check();
+}
+
+Debugger::~Debugger() {
+    check();
 }
 
 void Debugger::updateBlockInfo(const World &world, const Vec3i pos) {
@@ -127,25 +132,26 @@ void Debugger::updateCamInfo(const Camera &camera) {
 }
 
 void Debugger::updateChunkInfo(const Chunk &chunk) {
-    std::stringstream ss1, ss2, ss3;
+    std::stringstream ss1, ss2, ss3, ss4;
     ss1.precision(2);
     ss2.precision(2);
     ss3.precision(2);
+    ss4.precision(2);
     if (&chunk != nullptr) {
         ss1 << "Quantidade de malhas da chunk atual: " << chunk.getSolidCount();
         ss2 << "Quantidade de malhas (translúcidas) da chunk atual: " << chunk.getTransCount();
         ss3 << "Quantidade de malhas (de água) da chunk atual: " << chunk.getWaterCount();
-        chunkSolidInfo = ss1.str();
-        chunkTransInfo = ss2.str();
-        chunkWaterInfo = ss3.str();
+        ss4 << "Quantidade de malhas (Cross-Shaped) da chunk atual: " << chunk.getCrossCount();
     } else {
         ss1 << "Quantidade de malhas da chunk atual: 0";
         ss2 << "Quantidade de malhas (translúcidas) da chunk atual: 0";
         ss3 << "Quantidade de malhas (de água) dachunk atual: 0";
-        chunkSolidInfo = ss1.str();
-        chunkTransInfo = ss2.str();
-        chunkWaterInfo = ss3.str();
+        ss4 << "Quantidade de malhas (Cross-Shaped) dachunk atual: 0";
     }
+    chunkSolidInfo = ss1.str();
+    chunkTransInfo = ss2.str();
+    chunkWaterInfo = ss3.str();
+    chunkCrossInfo = ss4.str();
 }
 // talvez inútil pois ImGui já oferece uma função sofisticada para FPS
 void Debugger::updateFPS() {
@@ -192,9 +198,10 @@ void Debugger::drawChunkGrid(const Camera& camera, const glm::mat4 &proj, const 
     glBindVertexArray(internalGridVAO);
     glDrawArrays(GL_LINES, 0, internalGridVertexCount);
     glBindVertexArray(0);
+    check();
 }
 
 
 void Debugger::check() {
-    return;
+    checkOpenGLError();
 }

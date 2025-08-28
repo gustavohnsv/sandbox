@@ -53,7 +53,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) { // pode ser 
 // ============================================================================= 
 // Callback para dados de entrada do Mouse (clique)
 // =============================================================================
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) { // pode ser mantida
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
     ApplicationContext *context = (ApplicationContext*) glfwGetWindowUserPointer(window);
     World *world = context->world;
     Camera *camera = context->camera;
@@ -210,22 +210,6 @@ int main(int argc, char* argv[]) {
     // ============================================================================= 
     // Inicialização das texturas
     // =============================================================================
-    // std::optional<std::filesystem::path> grass = findPath(startDir, "grass.jpg");
-    // std::optional<std::filesystem::path> dirt = findPath(startDir, "dirt.jpg");
-    // std::optional<std::filesystem::path> stone = findPath(startDir, "stone.jpg");
-    // std::optional<std::filesystem::path> water = findPath(startDir, "water.jpg");
-    // std::optional<std::filesystem::path> rootstone = findPath(startDir, "rootstone.jpg");
-    // std::optional<std::filesystem::path> sand = findPath(startDir, "sand.jpg");
-    // std::optional<std::filesystem::path> sandstone = findPath(startDir, "sandstone.jpg");
-    // if (!grass.has_value() && !dirt.has_value() && !stone.has_value() && !water.has_value() && !rootstone.has_value() && !sand.has_value() && !sandstone.has_value()) return -1;
-    // Texture grassTexture((*grass).c_str());
-    // Texture dirtTexture((*dirt).c_str());
-    // Texture stoneTexture((*stone).c_str());
-    // Texture waterTexture((*water).c_str());
-    // Texture rootstoneTexture((*rootstone).c_str());
-    // Texture sandTexture((*sand).c_str());
-    // Texture sandStoneTexture((*sandstone).c_str());
-
     std::optional<std::filesystem::path> atlasPath = findPath(startDir, "mc_texturepack1024.png");
     if (!atlasPath.has_value()) return -1;
     Texture atlasTexture((*atlasPath).c_str());
@@ -312,6 +296,7 @@ int main(int argc, char* argv[]) {
             ImGui::Text(debug.chunkSolidInfo.c_str());
             ImGui::Text(debug.chunkTransInfo.c_str());
             ImGui::Text(debug.chunkWaterInfo.c_str());
+            ImGui::Text(debug.chunkCrossInfo.c_str());
             if (temp_chunk != nullptr) {
                 bool chunkState = (*temp_chunk).isModified();
                 if (chunkState) {
@@ -348,7 +333,7 @@ int main(int argc, char* argv[]) {
             io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
         } else {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Trava o cursor
-            io.ConfigFlags |= ImGuiConfigFlags_NoMouse; // ImGui ignora o mouse
+            io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
         }
         if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
             camera.processKeyboard(FORWARD, deltaTime*3);

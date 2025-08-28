@@ -12,6 +12,7 @@ class World;
 class Chunk {
     public:
         Chunk();
+        ~Chunk();
         bool saveFile(const std::string &filepath) const;
         bool loadFile(const std::string &filepath, const World &world, const Vec3i &chunkPos);
 

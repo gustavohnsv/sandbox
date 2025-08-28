@@ -21,8 +21,10 @@ class Debugger {
     std::string chunkSolidInfo = "Quantidade de malhas (sólidas) da chunk atual: [Calculando...]";
     std::string chunkTransInfo = "Quantidade de malhas (translúcidas) da chunk atual: [Calculando...]";
     std::string chunkWaterInfo = "Quantidade de malhas (de água) da chunk atual: [Calculando...]";
+    std::string chunkCrossInfo = "Quantidade de malhas (Cross-Shaped) da chunk atual: [Calculando...]";
     
     Debugger();
+    ~Debugger();
     void updateBlockInfo(const World &world, const Vec3i pos);
     void updateCamInfo(const Camera &camera);
     void updateChunkInfo(const Chunk &chunk);

@@ -15,6 +15,10 @@ Camera::Camera(float width, float height, glm::vec3 pos) {
     updateCamera();
 }
 
+Camera::~Camera() {
+    return;
+}
+
 glm::mat4 Camera::getView() const {
     return glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 }

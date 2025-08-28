@@ -23,6 +23,13 @@ Texture::Texture(const char* texture) {
     } else {
         std::cout << "Falha ao carregar texturas: " << texture << std::endl;
     }
+    check();
+}
+
+Texture::~Texture() {
+    // Funções GLFW
+    glDeleteTextures(1, &ID);
+    check();
 }
 
 void Texture::bind(unsigned int slot) const {
@@ -31,5 +38,5 @@ void Texture::bind(unsigned int slot) const {
 }
 
 void Texture::check() {
-    return;
+    checkOpenGLError();
 }

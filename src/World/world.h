@@ -16,6 +16,7 @@ class World {
         int seed;
 
         World(const Blocks &blocks, const Structures &structures);
+        ~World();
         void create();
         Chunk* getChunk(int x, int y, int z);
         const Chunk* getChunk(int x, int y, int z) const;

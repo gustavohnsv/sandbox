@@ -33,6 +33,7 @@ class Camera {
         glm::vec3 cameraUp;
         
         Camera(float width = 800.f, float height = 600.0f, glm::vec3 pos = glm::vec3(0.0f, 0.0f, 6.0f));
+        ~Camera();
         glm::mat4 getView() const;
         glm::mat4 getProj() const;
         glm::vec3 getPos() const;
