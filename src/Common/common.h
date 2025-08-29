@@ -69,12 +69,14 @@ const int ID_FLOR_ROSA      = 13;
 const int ID_FLOR_MARGARIDA = 14;
 const int ID_GRAMA_BAIXA    = 15;
 const int ID_CACTO          = 16;
-const int ID_ABOBORA        = 99; // Vai mudar depois
+const int ID_MINERIO_CARVAO = 18;
+const int ID_GELO           = 19;
 
 const int ID_ARVORE         = 1;
 const int ID_FLOR           = 2;
 const int ID_ARBUSTO        = 3;
 const int ID_CACTUS         = 4;
+const int ID_MINERIO        = 5;
 
 // --- Bibliotecas Padrão do C ---
 #include <ctime> // Para a função time()

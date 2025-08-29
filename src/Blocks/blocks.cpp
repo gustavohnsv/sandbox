@@ -11,11 +11,13 @@ BlockRenderType getBlockRenderType(int type) {
     case ID_ARENITO:
     case ID_TERRA:
     case ID_ROCHA_MATRIZ:
+    case ID_MINERIO_CARVAO:
         return SOLID;
     case ID_FOLHA_CARVALHO:
     case ID_FOLHA_PINHEIRO:
     case ID_CACTO:
     case ID_VIDRO:
+    case ID_GELO:
         return TRANSLUCENT;
     case ID_AGUA:
         return WATER;
@@ -84,6 +86,12 @@ Blocks::Blocks() {
     // Cacto
     const float cactusInset = (1.0f/16.0f);
     database[ID_CACTO] = {"Cacto", ID_CACTO, {6, 2}, {5, 2}, {6, 2}, {-0.5f + cactusInset, -0.5f, -0.5f + cactusInset}, {0.5f - cactusInset, 0.5f, 0.5f - cactusInset}};
+
+    // Minério de carvão
+    database[ID_MINERIO_CARVAO] = {"Minério de carvão", ID_MINERIO_CARVAO, {12, 3}, {12, 3}, {12, 3}, {-0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, 0.5f}};
+
+    // Gelo
+    database[ID_GELO] = {"Gelo", ID_GELO, {43, 6}, {43, 6}, {43, 6}, {-0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, 0.5f}};
 
 }
 

@@ -29,7 +29,7 @@ World::World(const Blocks &blocks, const Structures &structures) {
             "Planície nevada", ID_GRAMA_NEVE, ID_TERRA,
             32.0f, 1.0f, 0.01f,
             -0.5f, 0.0f,
-            false,
+            true,
         },
         {
             "Montanhas", ID_PEDRA, ID_PEDRA, 
@@ -319,45 +319,39 @@ void World::update(const glm::vec3 &pos, const glm::mat4 &view, const glm::mat4 
         }
     }
 
-    // --- PROCESSAMENTO DAS FILAS (COM ORÇAMENTO) ---
     int chunksDecoratedThisFrame = 0;
-    const int MAX_DECORATIONS_PER_FRAME = 2; // Orçamento: decore no máximo 2 chunks por quadro
+    const int MAX_DECORATIONS_PER_FRAME = 2;
 
     std::vector<Vec3i> decoratedChunks;
-    // Percorre a fila de chunks esperando para serem decorados
     for (const auto& chunkPos : chunksNeedingDecoration) {
         if (chunksDecoratedThisFrame >= MAX_DECORATIONS_PER_FRAME) {
-            break; // Já atingimos o orçamento para este quadro
+            break;
         }
 
         if (allNeighborsExist(chunkPos)) {
-            Profiler::measure("decorateChunk()", [&]() {
-                decorateChunk(chunkPos); // Fase 2
-            });
+            //Profiler::measure("decorateChunk()", [&]() {
+                decorateChunk(chunkPos);
+            //});
             
-            // Após decorar, o chunk e seus vizinhos precisam ter a malha reconstruída
             for (int dx = -1; dx <= 1; dx++) {
                 for (int dz = -1; dz <= 1; dz++) {
                     chunksNeedingLighting.insert({chunkPos.x + dx, 0, chunkPos.z + dz});
                 }
             }
             
-            decoratedChunks.push_back(chunkPos); // Marca para remoção da fila de espera
+            decoratedChunks.push_back(chunkPos);
             chunksDecoratedThisFrame++;
         }
     }
 
-    // Remove os chunks que acabaram de ser decorados da fila de espera
     for (const auto& pos : decoratedChunks) {
         chunksNeedingDecoration.erase(pos);
     }
     
-    // Atualiza iluminação dos chunks pendentes
     // Profiler::measure("World::updateChunkLighing()", [&]() {
         updateChunkLighting();
     // });
 
-    // FASE 3: Descarregamento de chunks distantes
     std::vector<Vec3i> chunksToUnload;
 
     for (auto const& [pos, chunk] : world) {
@@ -483,11 +477,15 @@ void World::generateChunkTerrain(Chunk &chunk, Vec3i chunkPos) {
                 float worldY = (float)by;
                 float caveValue = caveNoise.GetNoise(worldX, worldY, worldZ);
                     if (caveValue > 0.01f && by <= (int)(terrainHeight*0.8) && by >= (int)(terrainHeight*0.2)) {
-                        chunk.setBlock(bx, by, bz, 0, false);
+                        chunk.setBlock(bx, by, bz, ID_AR, false);
                     } else {
                         if (by > terrainHeight) {
                             if (by <= waterLevel) {
-                               chunk.setBlock(bx, by, bz, ID_AGUA, false);
+                                if (currentBiome.idealTemp < 0.0f) {
+                                    chunk.setBlock(bx, by, bz, ID_GELO, false);
+                                } else {
+                                    chunk.setBlock(bx, by, bz, ID_AGUA, false);
+                                }
                             } else {
                                 chunk.setBlock(bx, by, bz, ID_AR, false);
                             }
@@ -532,6 +530,10 @@ void World::decorateChunk(Vec3i chunkPos) {
                 int odd = rand() % 10;
                 if (odd >= 8) structureDatabase.placeStructure(ID_FLOR, (*this), Vec3i{(int)worldX, surfaceY, (int)worldZ});
                 else if (odd >= 6 && odd < 8) structureDatabase.placeStructure(ID_ARBUSTO, (*this), Vec3i{(int)worldX, surfaceY, (int)worldZ});
+            }
+            if (structureNoise > 0.5f) {
+                int odd = rand() % 5;
+                if (odd >= 3) structureDatabase.placeStructure(ID_MINERIO, (*this), Vec3i{(int)worldX, surfaceY, (int)worldZ});
             }
 
             // 2. Se o potencial for baixo, ignora rapidamente.
@@ -725,15 +727,15 @@ bool World::hasBlockAt(const Vec3i &pos) const {
 bool World::allNeighborsExist(Vec3i chunkPos) const {
     for (int dx = -1; dx <= 1; dx++) {
         for (int dz = -1; dz <= 1; dz++) {
-            if (dx == 0 && dz == 0) continue; // Não precisa checar a si mesmo
+            if (dx == 0 && dz == 0) continue;
 
             Vec3i neighborPos = {chunkPos.x + dx, 0, chunkPos.z + dz};
             if (world.find(neighborPos) == world.end()) {
-                return false; // Se qualquer vizinho não for encontrado, retorne falso
+                return false;
             }
         }
     }
-    return true; // Todos os 8 vizinhos foram encontrados
+    return true;
 }
 
 void World::check() {

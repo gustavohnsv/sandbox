@@ -166,6 +166,20 @@ void Structures::placeStructure(int type, World &world, const Vec3i &pos) {
                 }
             }
             break;
+        case ID_MINERIO:
+            if (surfaceBlockType == ID_PEDRA) {
+                int chunkX = static_cast<int>(floor((float)pos.x/CHUNK_WIDTH));
+                int chunkZ = static_cast<int>(floor((float)pos.z/CHUNK_DEPTH));
+                Vec3i chunkPos = { chunkX, 0, chunkZ };
+                Chunk* chunk = world.getChunk(chunkPos.x, chunkPos.y, chunkPos.z);
+
+                if (chunk) {
+                    int localX = pos.x - chunkPos.x * CHUNK_WIDTH;
+                    int localZ = pos.z - chunkPos.z * CHUNK_DEPTH;
+                    setBlockAcrossChunks(ID_MINERIO_CARVAO, world, {pos.x, pos.y, pos.z});
+                }
+            }
+            break;
         default:
             break;
     }

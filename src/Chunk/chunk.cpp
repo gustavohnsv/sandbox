@@ -148,7 +148,7 @@ void Chunk::buildSolidMesh(const World &world, const Vec3i &chunkPos) {
                         float u_max = u_min + uv_x_step;
                         float v_max = v_min + uv_y_step;
                         float faceLight = world.isExposedToSky(globalX, globalY + 1, globalZ) ? 1.0 : baseLight;
-                        if (type == ID_PEDRA) faceLight -= 0.4; 
+                        if (type == ID_PEDRA || type == ID_MINERIO_CARVAO) faceLight -= 0.4; 
                         mesh.insert(mesh.end(), {
                             minX, maxY, minZ,   0.0f, 1.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
                             maxX, maxY, minZ,   0.0f, 1.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
@@ -171,7 +171,7 @@ void Chunk::buildSolidMesh(const World &world, const Vec3i &chunkPos) {
                         float u_max = u_min + uv_x_step;
                         float v_max = v_min + uv_y_step;
                         float faceLight = world.isExposedToSky(globalX, globalY - 1, globalZ) ? 0.7 : baseLight;
-                        if (type == ID_PEDRA) faceLight -= 0.4;
+                        if (type == ID_PEDRA || type == ID_MINERIO_CARVAO) faceLight -= 0.4;
                         mesh.insert(mesh.end(), {
                             minX, minY, minZ,   0.0f, -1.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
                             maxX, minY, maxZ,   0.0f, -1.0f, 0.0f,   (float)type,   u_max, v_min,   faceLight,
@@ -194,7 +194,7 @@ void Chunk::buildSolidMesh(const World &world, const Vec3i &chunkPos) {
                         float u_max = u_min + uv_x_step;
                         float v_max = v_min + uv_y_step;
                         float faceLight = world.isExposedToSky(globalX + 1, globalY, globalZ) ? 0.866 : baseLight;
-                        if (type == ID_PEDRA) faceLight -= 0.4;
+                        if (type == ID_PEDRA || type == ID_MINERIO_CARVAO) faceLight -= 0.4;
                         mesh.insert(mesh.end(), {
                             maxX, minY, minZ,   1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_max,   faceLight,
                             maxX, minY, maxZ,   1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
@@ -217,7 +217,7 @@ void Chunk::buildSolidMesh(const World &world, const Vec3i &chunkPos) {
                         float u_max = u_min + uv_x_step;
                         float v_max = v_min + uv_y_step;
                         float faceLight = world.isExposedToSky(globalX - 1, globalY, globalZ) ? 0.86 : baseLight;
-                        if (type == ID_PEDRA) faceLight -= 0.4;
+                        if (type == ID_PEDRA || type == ID_MINERIO_CARVAO) faceLight -= 0.4;
                         mesh.insert(mesh.end(), {
                             minX, minY, minZ,  -1.0f, 0.0f, 0.0f,   (float)type,   u_max, v_max,   faceLight,
                             minX, maxY, maxZ,  -1.0f, 0.0f, 0.0f,   (float)type,   u_min, v_min,   faceLight,
@@ -240,7 +240,7 @@ void Chunk::buildSolidMesh(const World &world, const Vec3i &chunkPos) {
                         float u_max = u_min + uv_x_step;
                         float v_max = v_min + uv_y_step;
                         float faceLight = world.isExposedToSky(globalX, globalY, globalZ + 1) ? 0.86 : baseLight;
-                        if (type == ID_PEDRA) faceLight -= 0.4;
+                        if (type == ID_PEDRA || type == ID_MINERIO_CARVAO) faceLight -= 0.4;
                         mesh.insert(mesh.end(), {
                             minX, minY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,   u_max, v_max,   faceLight,
                             maxX, minY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,   u_min, v_max,   faceLight,
@@ -263,7 +263,7 @@ void Chunk::buildSolidMesh(const World &world, const Vec3i &chunkPos) {
                         float u_max = u_min + uv_x_step;
                         float v_max = v_min + uv_y_step;
                         float faceLight = world.isExposedToSky(globalX, globalY, globalZ - 1) ? 0.86 : baseLight;
-                        if (type == ID_PEDRA) faceLight -= 0.4;
+                        if (type == ID_PEDRA || type == ID_MINERIO_CARVAO) faceLight -= 0.4;
                         mesh.insert(mesh.end(), {
                             minX, minY, minZ,   0.0f, 0.0f, -1.0f,   (float)type,   u_min, v_max,   faceLight,
                             maxX, maxY, minZ,   0.0f, 0.0f, -1.0f,   (float)type,   u_max, v_min,   faceLight,
@@ -343,7 +343,7 @@ void Chunk::buildTransMesh(const World &world, const Vec3i &chunkPos) {
                 // FACE CIMA (+Y) - verificar bloco acima
                 int blockAbove = world.getBlockType(Vec3i{globalX, globalY + 1, globalZ});
                 if (blockAbove == -1) blockAbove = 0;
-                if (blockAbove != type && (blockAbove == ID_AR || blockAbove == ID_AGUA)) {
+                if (blockAbove != type && (blockAbove == ID_AR || blockAbove == ID_AGUA || blockAbove == ID_VIDRO)) {
                     float u_min = blockInfo.tex_top.x * uv_x_step;
                     float v_min = blockInfo.tex_top.y * uv_y_step;
                     float u_max = u_min + uv_x_step;
@@ -362,7 +362,7 @@ void Chunk::buildTransMesh(const World &world, const Vec3i &chunkPos) {
                 // FACE BAIXO (-Y) - verificar bloco debaixo
                 int blockBelow = world.getBlockType(Vec3i{globalX, globalY - 1, globalZ});
                 if (blockBelow == -1) blockBelow = 0;
-                if (blockBelow != type && (blockBelow == ID_AR || blockBelow == ID_AGUA)) {
+                if (blockBelow != type && (blockBelow == ID_AR || blockBelow == ID_AGUA || blockBelow == ID_VIDRO)) {
                     float u_min = blockInfo.tex_bottom.x * uv_x_step;
                     float v_min = blockInfo.tex_bottom.y * uv_y_step;
                     float u_max = u_min + uv_x_step;
@@ -381,7 +381,7 @@ void Chunk::buildTransMesh(const World &world, const Vec3i &chunkPos) {
                 // FACE DIREITA (+X) - verificar bloco à direita
                 int blockRight = world.getBlockType(Vec3i{globalX + 1, globalY, globalZ});
                 if (blockRight == -1) blockRight = 0;
-                if (blockRight != type && (blockRight == ID_AR || blockRight == ID_AGUA)) {
+                if (blockRight != type && (blockRight == ID_AR || blockRight == ID_AGUA || blockRight == ID_VIDRO)) {
                     float u_min = blockInfo.tex_side.x * uv_x_step;
                     float v_min = blockInfo.tex_side.y * uv_y_step;
                     float u_max = u_min + uv_x_step;
@@ -400,7 +400,7 @@ void Chunk::buildTransMesh(const World &world, const Vec3i &chunkPos) {
                 // FACE ESQUERDA (-X) - verificar bloco à esquerda
                 int blockLeft = world.getBlockType(Vec3i{globalX - 1, globalY, globalZ});
                 if (blockLeft == -1) blockLeft = 0;
-                if (blockLeft != type && (blockLeft == ID_AR || blockLeft == ID_AGUA)) {
+                if (blockLeft != type && (blockLeft == ID_AR || blockLeft == ID_AGUA || blockLeft == ID_VIDRO)) {
                     float u_min = blockInfo.tex_side.x * uv_x_step;
                     float v_min = blockInfo.tex_side.y * uv_y_step;
                     float u_max = u_min + uv_x_step;
@@ -419,7 +419,7 @@ void Chunk::buildTransMesh(const World &world, const Vec3i &chunkPos) {
                 // FACE FRENTE (+Z) - verificar bloco na frente
                 int blockFront = world.getBlockType(Vec3i{globalX, globalY, globalZ + 1});
                 if (blockFront == -1) blockFront = 0;
-                if (blockFront != type && (blockFront == ID_AR || blockFront == ID_AGUA)) {
+                if (blockFront != type && (blockFront == ID_AR || blockFront == ID_AGUA || blockFront == ID_VIDRO)) {
                     float u_min = blockInfo.tex_side.x * uv_x_step;
                     float v_min = blockInfo.tex_side.y * uv_y_step;
                     float u_max = u_min + uv_x_step;
@@ -438,7 +438,7 @@ void Chunk::buildTransMesh(const World &world, const Vec3i &chunkPos) {
                 // FACE TRÁS (-Z) - verificar bloco atrás
                 int blockBack = world.getBlockType(Vec3i{globalX, globalY, globalZ - 1});
                 if (blockBack == -1) blockBack = 0;
-                if (blockBack != type && (blockBack == ID_AR || blockBack == ID_AGUA)) {
+                if (blockBack != type && (blockBack == ID_AR || blockBack == ID_AGUA || blockBack == ID_VIDRO)) {
                     float u_min = blockInfo.tex_side.x * uv_x_step;
                     float v_min = blockInfo.tex_side.y * uv_y_step;
                     float u_max = u_min + uv_x_step;
@@ -506,12 +506,19 @@ void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
                 int globalY = chunkPos.y * CHUNK_HEIGHT + y;
                 int globalZ = chunkPos.z * CHUNK_DEPTH + z;
                 const Block &blockInfo = world.getBlockInfo(type);
-                float atlasW = 1024.0f;
-                float atlasH = 512.0f;
-                float tileW = 16.0f;
-                float tileH = 16.0f;
-                float uv_x_step = tileW / atlasW;
-                float uv_y_step = tileH / atlasH;
+                const float atlasW = 1024.0f;
+                const float atlasH = 512.0f;
+                const float tileW = 16.0f;
+                const float tileH = 16.0f;
+                const float uv_x_step = tileW / atlasW;
+                const float uv_y_step = tileH / atlasH;
+
+                const float minX = x + blockInfo.minBounds.x;
+                const float minY = y + blockInfo.minBounds.y;
+                const float minZ = z + blockInfo.minBounds.z;
+                const float maxX = x + blockInfo.maxBounds.x;
+                const float maxY = y + blockInfo.maxBounds.y;
+                const float maxZ = z + blockInfo.maxBounds.z;
 
                 // FACE CIMA (+Y) - verificar bloco acima
                 int blockAbove = world.getBlockType(Vec3i{globalX, globalY + 1, globalZ});
@@ -523,14 +530,12 @@ void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
                     float v_max = v_min + uv_y_step;
                     float faceLight = world.isExposedToSky(globalX, globalY + 1, globalZ) ? 1.0 : baseLight;
                     mesh.insert(mesh.end(), {
-                        // Triângulo 1
-                        x - offset, y + 0.4f, z - offset,   0.0f, 1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
-                        x + offset, y + 0.4f, z - offset,   0.0f, 1.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
-                        x + offset, y + 0.4f, z + offset,   0.0f, 1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
-                        // Triângulo 2
-                        x + offset, y + 0.4f, z + offset,   0.0f, 1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
-                        x - offset, y + 0.4f, z + offset,   0.0f, 1.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
-                        x - offset, y + 0.4f, z - offset,   0.0f, 1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        minX, maxY, minZ,   0.0f, 1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        maxX, maxY, minZ,   0.0f, 1.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
+                        maxX, maxY, maxZ,   0.0f, 1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        maxX, maxY, maxZ,   0.0f, 1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        minX, maxY, maxZ,   0.0f, 1.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
+                        minX, maxY, minZ,   0.0f, 1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
                     });
                 }
 
@@ -544,14 +549,12 @@ void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
                     float v_max = v_min + uv_y_step;
                     float faceLight = world.isExposedToSky(globalX, globalY - 1, globalZ) ? offset: baseLight;
                     mesh.insert(mesh.end(), {
-                        // Triângulo 1
-                        x - offset, y - offset, z - offset,   0.0f,-1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
-                        x + offset, y - offset, z + offset,   0.0f,-1.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
-                        x + offset, y - offset, z - offset,   0.0f,-1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
-                        // Triângulo 2
-                        x + offset, y - offset, z + offset,   0.0f,-1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
-                        x - offset, y - offset, z - offset,   0.0f,-1.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
-                        x - offset, y - offset, z + offset,   0.0f,-1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        minX, minY, minZ,   0.0f,-1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        maxX, minY, maxZ,   0.0f,-1.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
+                        maxX, minY, minZ,   0.0f,-1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        maxX, minY, maxZ,   0.0f,-1.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        minX, minY, minZ,   0.0f,-1.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
+                        minX, minY, maxZ,   0.0f,-1.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
                     });
                 }
                 
@@ -565,14 +568,12 @@ void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
                     float v_max = v_min + uv_y_step;
                     float faceLight = world.isExposedToSky(globalX + 1, globalY, globalZ) ? 0.8 : baseLight;
                     mesh.insert(mesh.end(), {
-                        // Triângulo 1
-                        x + offset, y - offset, z - offset,   1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
-                        x + offset, y - offset, z + offset,   1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
-                        x + offset, y + offset, z + offset,   1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
-                        // Triângulo 2
-                        x + offset, y + offset, z + offset,   1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
-                        x + offset, y + offset, z - offset,   1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
-                        x + offset, y - offset, z - offset,   1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        maxX, minY, minZ,   1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        maxX, minY, maxZ,   1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
+                        maxX, maxY, maxZ,   1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        maxX, maxY, maxZ,   1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        maxX, maxY, minZ,   1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
+                        maxX, minY, minZ,   1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
                     });
                 }
                 
@@ -586,14 +587,12 @@ void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
                     float v_max = v_min + uv_y_step;
                     float faceLight = world.isExposedToSky(globalX - 1, globalY, globalZ) ? 0.8 : baseLight;
                     mesh.insert(mesh.end(), {
-                        // Triângulo 1
-                        x - offset, y - offset, z - offset,  -1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
-                        x - offset, y + offset, z + offset,  -1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
-                        x - offset, y - offset, z + offset,  -1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
-                        // Triângulo 2
-                        x - offset, y + offset, z + offset,  -1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
-                        x - offset, y - offset, z - offset,  -1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
-                        x - offset, y + offset, z - offset,  -1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        minX, minY, minZ,  -1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
+                        minX, maxY, maxZ,  -1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_max,     faceLight,
+                        minX, minY, maxZ,  -1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        minX, maxY, maxZ,  -1.0f, 0.0f, 0.0f,   (float)type,        u_max, v_min,     faceLight,
+                        minX, minY, minZ,  -1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_min,     faceLight,
+                        minX, maxY, minZ,  -1.0f, 0.0f, 0.0f,   (float)type,        u_min, v_max,     faceLight,
                     });
                 }
                 
@@ -607,14 +606,12 @@ void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
                     float v_max = v_min + uv_y_step;
                     float faceLight = world.isExposedToSky(globalX, globalY, globalZ + 1) ? 0.8 : baseLight;
                     mesh.insert(mesh.end(), {
-                        // Triângulo 1
-                        x - offset, y - offset, z + offset,   0.0f, 0.0f, 1.0f,   (float)type,        u_min, v_max,     faceLight,
-                        x + offset, y - offset, z + offset,   0.0f, 0.0f, 1.0f,   (float)type,        u_max, v_max,     faceLight,
-                        x + offset, y + offset, z + offset,   0.0f, 0.0f, 1.0f,   (float)type,        u_max, v_min,     faceLight,
-                        // Triângulo 2
-                        x + offset, y + offset, z + offset,   0.0f, 0.0f, 1.0f,   (float)type,        u_max, v_min,     faceLight,
-                        x - offset, y + offset, z + offset,   0.0f, 0.0f, 1.0f,   (float)type,        u_min, v_min,     faceLight,
-                        x - offset, y - offset, z + offset,   0.0f, 0.0f, 1.0f,   (float)type,        u_min, v_max,     faceLight,
+                        minX, minY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,        u_min, v_max,     faceLight,
+                        maxX, minY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,        u_max, v_max,     faceLight,
+                        maxX, maxY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,        u_max, v_min,     faceLight,
+                        maxX, maxY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,        u_max, v_min,     faceLight,
+                        minX, maxY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,        u_min, v_min,     faceLight,
+                        minX, minY, maxZ,   0.0f, 0.0f, 1.0f,   (float)type,        u_min, v_max,     faceLight,
                     });
                 }
                 
@@ -628,14 +625,12 @@ void Chunk::buildWaterMesh(const World &world, const Vec3i &chunkPos) {
                     float v_max = v_min + uv_y_step;
                     float faceLight = world.isExposedToSky(globalX, globalY, globalZ - 1) ? 0.8 : baseLight;
                     mesh.insert(mesh.end(), {
-                        // Triângulo 1
-                        x - offset, y - offset, z - offset,   0.0f, 0.0f,-1.0f,   (float)type,        u_min, v_max,     faceLight,
-                        x + offset, y + offset, z - offset,   0.0f, 0.0f,-1.0f,   (float)type,        u_max, v_max,     faceLight,
-                        x + offset, y - offset, z - offset,   0.0f, 0.0f,-1.0f,   (float)type,        u_max, v_min,     faceLight,
-                        // Triângulo 2
-                        x + offset, y + offset, z - offset,   0.0f, 0.0f,-1.0f,   (float)type,        u_max, v_min,     faceLight,
-                        x - offset, y - offset, z - offset,   0.0f, 0.0f,-1.0f,   (float)type,        u_min, v_min,     faceLight,
-                        x - offset, y + offset, z - offset,   0.0f, 0.0f,-1.0f,   (float)type,        u_min, v_max,     faceLight,
+                        minX, minY, minZ,   0.0f, 0.0f,-1.0f,   (float)type,        u_min, v_max,     faceLight,
+                        maxX, maxY, minZ,   0.0f, 0.0f,-1.0f,   (float)type,        u_max, v_max,     faceLight,
+                        maxX, minY, minZ,   0.0f, 0.0f,-1.0f,   (float)type,        u_max, v_min,     faceLight,
+                        maxX, maxY, minZ,   0.0f, 0.0f,-1.0f,   (float)type,        u_max, v_min,     faceLight,
+                        minX, minY, minZ,   0.0f, 0.0f,-1.0f,   (float)type,        u_min, v_min,     faceLight,
+                        minX, maxY, minZ,   0.0f, 0.0f,-1.0f,   (float)type,        u_min, v_max,     faceLight,
                     });
                 }
             }
